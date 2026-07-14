@@ -1,0 +1,971 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+<title>Книжный редактор FB2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,440;9..144,560;9..144,650&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E8ECDF;
+    --page:#FBFBF6;
+    --page-shade:#F1F1E7;
+    --ink:#1E2420;
+    --ink-soft:#5B6259;
+    --ink-faint:#8B9186;
+    --accent:#234B3E;
+    --accent-dark:#173328;
+    --accent-soft:#E3ECE6;
+    --brass:#AD8148;
+    --brass-soft:#F5EAD9;
+    --line:#DBE0D1;
+    --line-strong:#C4CBB6;
+    --danger:#B24730;
+    --danger-soft:#FBEAE3;
+    --success:#2B6E55;
+    --success-soft:#E3F0E8;
+    --r-lg:20px;
+    --r-md:12px;
+    --r-sm:8px;
+    --shadow-page:0 24px 60px -24px rgba(24,30,26,0.28), 0 2px 10px rgba(24,30,26,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 700px at 15% -10%, #EFF2E4 0%, transparent 60%),
+      var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans',system-ui,sans-serif;
+    min-height:100vh;
+    padding:28px 16px 60px;
+    display:flex;
+    justify-content:center;
+  }
+  .wrap{width:100%;max-width:1040px;}
+
+  /* ---------- brand header ---------- */
+  .brand{display:flex;align-items:baseline;gap:12px;margin:6px 4px 22px;}
+  .brand svg{flex:none;width:26px;height:26px;color:var(--accent);}
+  .brand h1{
+    font-family:'Fraunces',serif;font-weight:650;font-size:26px;letter-spacing:-0.01em;margin:0;color:var(--ink);
+  }
+  .brand .tag{font-size:13px;color:var(--ink-faint);font-family:'IBM Plex Mono',monospace;}
+
+  /* ---------- upload state ---------- */
+  .intake{
+    background:var(--page);
+    border-radius:var(--r-lg);
+    box-shadow:var(--shadow-page);
+    padding:56px 32px;
+    position:relative;
+    overflow:hidden;
+  }
+  .intake::after{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:0.05;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .drop-zone{
+    position:relative;
+    border:1.5px dashed var(--line-strong);
+    border-radius:var(--r-md);
+    padding:52px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .18s, background .18s;
+    max-width:420px;
+    margin:0 auto;
+  }
+  .drop-zone:hover, .drop-zone.drag{border-color:var(--accent);background:var(--accent-soft);}
+  .drop-zone input{display:none;}
+  .drop-zone svg{width:34px;height:34px;color:var(--ink-faint);margin-bottom:14px;}
+  .drop-zone:hover svg, .drop-zone.drag svg{color:var(--accent);}
+  .drop-zone .dz-title{font-family:'Fraunces',serif;font-size:18px;font-weight:560;color:var(--ink);}
+  .drop-zone .dz-sub{font-size:13px;color:var(--ink-faint);margin-top:4px;}
+  .file-name{color:var(--accent);font-weight:500;margin-top:14px;font-size:13.5px;font-family:'IBM Plex Mono',monospace;}
+
+  /* ---------- spread (loaded state) ---------- */
+  .spread-outer{
+    background:var(--page);
+    border-radius:var(--r-lg);
+    box-shadow:var(--shadow-page);
+    overflow:hidden;
+    opacity:0;transform:translateY(6px);
+    animation:rise .45s ease forwards;
+  }
+  @keyframes rise{to{opacity:1;transform:none;}}
+  .toolbar{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:16px 22px;border-bottom:1px solid var(--line);
+    background:var(--page);
+  }
+  .toolbar .meta{font-size:13px;color:var(--ink-faint);font-family:'IBM Plex Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .link-btn{
+    background:none;border:none;color:var(--accent);font-size:13.5px;font-weight:500;cursor:pointer;
+    font-family:'IBM Plex Sans',sans-serif;padding:6px 4px;display:flex;align-items:center;gap:6px;
+  }
+  .link-btn:hover{color:var(--accent-dark);text-decoration:underline;}
+
+  .spread{
+    display:grid;grid-template-columns:1fr 1fr;position:relative;
+  }
+  .spread::before{
+    content:"";position:absolute;top:0;bottom:0;left:50%;width:34px;margin-left:-17px;
+    background:linear-gradient(to right, rgba(20,26,22,.09), rgba(20,26,22,0) 22%, rgba(20,26,22,0) 78%, rgba(20,26,22,.09));
+    pointer-events:none;
+  }
+  .page{padding:28px 30px 32px;}
+  .page-left{border-right:none;}
+  .page-right{background:var(--page-shade);}
+
+  .field-label{
+    display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);
+    margin:0 0 6px;letter-spacing:.02em;text-transform:uppercase;
+  }
+  .form-group{margin:0 0 18px;}
+  .hint{font-size:12px;color:var(--ink-faint);margin-top:5px;line-height:1.4;}
+  input[type=text], input[type=url], textarea{
+    width:100%;padding:11px 13px;border:1px solid var(--line-strong);border-radius:var(--r-sm);
+    font-size:15px;background:var(--page);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  input[type=text]:focus, input[type=url]:focus, textarea:focus{
+    outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);
+  }
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  textarea.annot{min-height:90px;resize:vertical;font-size:14.5px;line-height:1.5;}
+
+  h2.section-title{
+    font-family:'Fraunces',serif;font-size:16px;font-weight:600;margin:0 0 16px;color:var(--ink);
+    display:flex;align-items:center;gap:8px;
+  }
+  h2.section-title svg{width:16px;height:16px;color:var(--brass);}
+
+  /* cover uploader */
+  .cover-row{display:flex;gap:16px;align-items:flex-start;margin-bottom:22px;}
+  .cover-thumb{
+    flex:none;width:96px;height:132px;border-radius:6px;background:var(--page-shade);
+    border:1px solid var(--line);box-shadow:0 6px 16px -8px rgba(20,26,22,.35);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;
+  }
+  .cover-thumb img{width:100%;height:100%;object-fit:cover;}
+  .cover-thumb svg{width:26px;height:26px;color:var(--ink-faint);}
+  .cover-thumb::after{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:5px;
+    background:linear-gradient(to right, rgba(0,0,0,.18), rgba(0,0,0,0));
+  }
+  .cover-controls{flex:1;min-width:0;}
+  .cover-dropzone{
+    border:1.5px dashed var(--line-strong);border-radius:var(--r-sm);padding:14px 12px;
+    cursor:pointer;font-size:13px;color:var(--ink-soft);transition:border-color .15s,background .15s;
+    display:flex;align-items:center;gap:8px;
+  }
+  .cover-dropzone:hover, .cover-dropzone.drag{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-dark);}
+  .cover-dropzone input{display:none;}
+  .cover-dropzone svg{width:16px;height:16px;flex:none;}
+  .cover-actions{display:flex;gap:14px;margin-top:8px;}
+  .tiny-btn{background:none;border:none;padding:0;font-size:12.5px;color:var(--ink-faint);cursor:pointer;font-family:'IBM Plex Sans',sans-serif;}
+  .tiny-btn:hover{color:var(--danger);}
+  .tiny-btn.accent:hover{color:var(--accent);}
+
+  /* genre */
+  select, input#genre{cursor:text;}
+
+  /* table of contents chips */
+  .toc-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;max-height:78px;overflow-y:auto;padding-right:2px;}
+  .toc-empty{font-size:12.5px;color:var(--ink-faint);}
+  .chip{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:4px 9px;border-radius:20px;
+    background:var(--brass-soft);color:#7A5A2B;border:1px solid transparent;cursor:pointer;
+    max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .chip:hover{border-color:var(--brass);}
+  .chip.lvl2{opacity:.8;}
+  .chip.lvl3{opacity:.62;}
+  .chip.lvl0{font-style:italic;background:var(--page-shade);color:var(--ink-faint);}
+  .chip.active{background:var(--accent);color:#fff;opacity:1;border-color:var(--accent);}
+
+  .chapter-editor{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .chapter-editor-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px;}
+  .chapter-position{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-faint);}
+  .chapter-nav-btns{display:flex;gap:6px;}
+  .nav-icon-btn{
+    width:28px;height:28px;border-radius:50%;border:1px solid var(--line-strong);background:var(--page);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);
+  }
+  .nav-icon-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .nav-icon-btn:disabled{opacity:.35;pointer-events:none;}
+
+  .preface-note{font-size:12.5px;color:var(--ink-faint);margin-bottom:10px;font-style:italic;}
+
+  .chapter-title-bar{display:flex;gap:8px;margin-bottom:10px;}
+  .chapter-title-bar input{
+    flex:1;font-family:'Fraunces',serif;font-size:17px;font-weight:560;padding:9px 12px;
+    border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--page);color:var(--ink);
+  }
+  .chapter-title-bar input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .level-select{
+    width:76px;padding:9px 8px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-size:13px;
+    background:var(--page);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;
+  }
+  .icon-btn-danger{
+    width:38px;height:38px;flex:none;border-radius:var(--r-sm);border:1px solid var(--line-strong);
+    background:var(--page);color:var(--ink-faint);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .icon-btn-danger:hover{border-color:var(--danger);color:var(--danger);}
+
+  textarea#chapterBodyText{
+    flex:1;width:100%;min-height:340px;resize:vertical;
+    font-family:'Source Serif 4',serif;font-size:16px;line-height:1.65;
+    padding:16px 18px;border:1px solid var(--line-strong);border-radius:var(--r-sm);
+    background:var(--page);color:var(--ink);
+  }
+
+  /* actions */
+  .actions{padding:18px 30px 26px;border-top:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  .btn{
+    padding:12px 22px;border-radius:var(--r-sm);font-size:14.5px;font-weight:600;cursor:pointer;
+    border:1px solid transparent;font-family:'IBM Plex Sans',sans-serif;transition:background .15s,border-color .15s,transform .1s;
+    display:inline-flex;align-items:center;gap:8px;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn svg{width:16px;height:16px;}
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{background:var(--accent-dark);}
+  .btn-primary:disabled{opacity:.5;pointer-events:none;}
+  .btn-ghost{background:transparent;color:var(--ink-soft);border-color:var(--line-strong);}
+  .btn-ghost:hover{border-color:var(--ink-faint);color:var(--ink);}
+  .status{
+    font-size:13.5px;padding:9px 14px;border-radius:var(--r-sm);display:none;align-items:center;gap:8px;
+    background:var(--success-soft);color:var(--success);
+  }
+  .status svg{width:15px;height:15px;flex:none;}
+  .status.error{background:var(--danger-soft);color:var(--danger);}
+
+  @media (max-width:760px){
+    .spread{grid-template-columns:1fr;}
+    .spread::before{display:none;}
+    .page-right{border-top:1px solid var(--line);}
+    .row2{grid-template-columns:1fr;}
+    .page{padding:22px 18px 26px;}
+    .actions{padding:16px 18px 22px;}
+    .toolbar{padding:14px 16px;}
+    textarea#chapterBodyText{min-height:280px;}
+  }
+
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 5.5C3 4.7 3.7 4 4.5 4H11v16H4.5A1.5 1.5 0 0 1 3 18.5v-13Z"/><path d="M21 5.5c0-.8-.7-1.5-1.5-1.5H13v16h6.5a1.5 1.5 0 0 0 1.5-1.5v-13Z"/></svg>
+    <h1>Книжный редактор</h1>
+    <span class="tag">.fb2</span>
+  </div>
+
+  <!-- ================= INTAKE (no file yet) ================= -->
+  <div class="intake" id="intake">
+    <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Загрузить файл fb2">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
+      <div class="dz-title">Перетащите файл сюда</div>
+      <div class="dz-sub">или нажмите, чтобы выбрать .fb2 с устройства</div>
+      <input type="file" id="fileInput" accept=".fb2,.zip">
+      <div class="file-name" id="fileName"></div>
+    </div>
+  </div>
+
+  <!-- ================= SPREAD (file loaded) ================= -->
+  <div class="spread-outer" id="editor" style="display:none;">
+
+    <div class="toolbar">
+      <div class="meta" id="toolbarMeta"></div>
+      <button class="link-btn" id="changeFileBtn">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        Открыть другой файл
+      </button>
+    </div>
+
+    <div class="spread">
+      <!-- LEFT PAGE: metadata + cover -->
+      <div class="page page-left">
+        <h2 class="section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+          Карточка книги
+        </h2>
+
+        <div class="cover-row">
+          <div class="cover-thumb" id="coverThumb">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15l-5-5-9 9"/></svg>
+            <img id="coverPreview" alt="Обложка" style="display:none;">
+          </div>
+          <div class="cover-controls">
+            <div class="cover-dropzone" id="coverDropZone" tabindex="0" role="button" aria-label="Загрузить обложку">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v12"/><path d="M8 8l4-4 4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+              <span id="coverDzLabel">Загрузить обложку с устройства</span>
+              <input type="file" id="coverInput" accept="image/*">
+            </div>
+            <div class="cover-actions">
+              <button class="tiny-btn" id="coverRemoveBtn" style="display:none;">Удалить обложку</button>
+            </div>
+            <div class="hint">JPG или PNG, будет встроена прямо в файл fb2.</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="field-label" for="bookTitle">Название книги</label>
+          <input type="text" id="bookTitle" placeholder="Название">
+        </div>
+        <div class="row2">
+          <div class="form-group">
+            <label class="field-label" for="authorFirst">Автор — имя</label>
+            <input type="text" id="authorFirst" placeholder="Имя">
+          </div>
+          <div class="form-group">
+            <label class="field-label" for="authorLast">Автор — фамилия</label>
+            <input type="text" id="authorLast" placeholder="Фамилия">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="genre">Жанр</label>
+          <input type="text" id="genre" list="genreList" placeholder="detective, sf_fantasy, adventure…">
+          <datalist id="genreList">
+            <option value="detective">Детектив</option>
+            <option value="thriller">Триллер</option>
+            <option value="sf_fantasy">Фэнтези</option>
+            <option value="sf_action">Боевая фантастика</option>
+            <option value="sf_epic">Эпическая фантастика</option>
+            <option value="sf">Научная фантастика</option>
+            <option value="love_contemporary">Современный любовный роман</option>
+            <option value="love_history">Исторический любовный роман</option>
+            <option value="adventure">Приключения</option>
+            <option value="adv_history">Исторические приключения</option>
+            <option value="child_tale">Детская сказка</option>
+            <option value="poetry">Поэзия</option>
+            <option value="dramaturgy">Драматургия</option>
+            <option value="humor">Юмор</option>
+            <option value="biography">Биография</option>
+            <option value="nonfiction">Нон-фикшн</option>
+            <option value="history">История</option>
+            <option value="science">Научная литература</option>
+          </datalist>
+          <div class="hint">Код жанра fb2 — начните вводить, чтобы увидеть подсказки.</div>
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="annotation">Аннотация</label>
+          <textarea id="annotation" class="annot" placeholder="Краткое содержание книги…"></textarea>
+        </div>
+      </div>
+
+      <!-- RIGHT PAGE: body text -->
+      <div class="page page-right">
+        <h2 class="section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+          Текст книги
+        </h2>
+
+        <div class="toc-row" id="tocRow"><span class="toc-empty">Оглавление появится здесь по мере ввода заголовков</span></div>
+
+        <div class="chapter-editor">
+          <div class="chapter-editor-head">
+            <span class="chapter-position" id="chapterPosition"></span>
+            <div class="chapter-nav-btns">
+              <button class="nav-icon-btn" id="prevChapterBtn" type="button" aria-label="Предыдущая глава">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+              <button class="nav-icon-btn" id="nextChapterBtn" type="button" aria-label="Следующая глава">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div id="prefaceNote" class="preface-note" style="display:none;">Текст до первой главы книги — необязательный пролог без заголовка.</div>
+
+          <div class="chapter-title-bar" id="chapterTitleBar">
+            <input type="text" id="chapterTitleInput" placeholder="Заголовок главы">
+            <select class="level-select" id="chapterLevelSelect" title="Уровень вложенности">
+              <option value="1">Ур. 1</option>
+              <option value="2">Ур. 2</option>
+              <option value="3">Ур. 3</option>
+              <option value="4">Ур. 4</option>
+              <option value="5">Ур. 5</option>
+              <option value="6">Ур. 6</option>
+            </select>
+            <button class="icon-btn-danger" id="deleteChapterBtn" type="button" title="Удалить главу" aria-label="Удалить главу">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>
+            </button>
+          </div>
+
+          <textarea id="chapterBodyText" spellcheck="false" placeholder="Текст главы…"></textarea>
+        </div>
+        <div class="hint">Клик по главе в оглавлении переключает редактор на неё. Каждая новая строка в тексте — отдельный абзац.</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="saveBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+        Сохранить и скачать
+      </button>
+      <button class="btn btn-ghost" id="resetBtn">Отменить изменения</button>
+      <div id="status" class="status">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+        <span id="statusText"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+  // ---------------- state ----------------
+  let parsedDoc = null;
+  let isZip = false;
+  let zipEntries = {};
+  let zipContentPath = 'content.xml';
+  let currentFileName = 'book.fb2';
+  let cover = null; // {base64, mime, id, isNew}
+  let coverRemoved = false;
+  let chapters = []; // [{level:0-6, title:string|null, paragraphs:[string]}]
+  let activeChapter = 0;
+
+  // ---------------- elements ----------------
+  const intake = document.getElementById('intake');
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const fileName = document.getElementById('fileName');
+  const editor = document.getElementById('editor');
+  const toolbarMeta = document.getElementById('toolbarMeta');
+  const changeFileBtn = document.getElementById('changeFileBtn');
+
+  const bookTitle = document.getElementById('bookTitle');
+  const authorFirst = document.getElementById('authorFirst');
+  const authorLast = document.getElementById('authorLast');
+  const genre = document.getElementById('genre');
+  const annotation = document.getElementById('annotation');
+
+  const tocRow = document.getElementById('tocRow');
+  const chapterPosition = document.getElementById('chapterPosition');
+  const prevChapterBtn = document.getElementById('prevChapterBtn');
+  const nextChapterBtn = document.getElementById('nextChapterBtn');
+  const prefaceNote = document.getElementById('prefaceNote');
+  const chapterTitleBar = document.getElementById('chapterTitleBar');
+  const chapterTitleInput = document.getElementById('chapterTitleInput');
+  const chapterLevelSelect = document.getElementById('chapterLevelSelect');
+  const deleteChapterBtn = document.getElementById('deleteChapterBtn');
+  const chapterBodyText = document.getElementById('chapterBodyText');
+
+  const coverThumb = document.getElementById('coverThumb');
+  const coverPreview = document.getElementById('coverPreview');
+  const coverDropZone = document.getElementById('coverDropZone');
+  const coverDzLabel = document.getElementById('coverDzLabel');
+  const coverInput = document.getElementById('coverInput');
+  const coverRemoveBtn = document.getElementById('coverRemoveBtn');
+
+  const saveBtn = document.getElementById('saveBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const status = document.getElementById('status');
+  const statusText = document.getElementById('statusText');
+
+  // ---------------- helpers ----------------
+  function showStatus(msg, isError){
+    statusText.textContent = msg;
+    status.style.display = 'flex';
+    status.className = 'status' + (isError ? ' error' : '');
+  }
+  function hideStatus(){ status.style.display = 'none'; }
+
+  function fileToBase64(file){
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result.split(',')[1]);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  function extFromMime(mime){
+    if (mime.indexOf('png') !== -1) return 'png';
+    if (mime.indexOf('webp') !== -1) return 'webp';
+    return 'jpg';
+  }
+
+  // ---------------- read FB2 (zip or plain xml) ----------------
+  async function readFB2(file){
+    const buffer = await file.arrayBuffer();
+    const header = new Uint8Array(buffer.slice(0, 4));
+    const isZipFile = (header[0]===0x50 && header[1]===0x4B && header[2]===0x03 && header[3]===0x04);
+
+    if (isZipFile){
+      const zip = await JSZip.loadAsync(buffer);
+
+      // convention #1: fb2.zip wraps a single "content.xml"
+      // convention #2: an ordinary .zip containing a .fb2 file (possibly in a subfolder)
+      let contentPath = null;
+      if (zip.file('content.xml')) {
+        contentPath = 'content.xml';
+      } else {
+        const candidates = Object.keys(zip.files)
+          .filter(path => !zip.files[path].dir && /\.fb2$/i.test(path));
+        if (candidates.length) {
+          // prefer a file at the archive root, otherwise take the first match
+          candidates.sort((a, b) => a.split('/').length - b.split('/').length);
+          contentPath = candidates[0];
+        }
+      }
+      if (!contentPath) throw new Error('В архиве не найден файл .fb2 или content.xml');
+
+      const xmlString = await zip.file(contentPath).async('text');
+      const doc = new DOMParser().parseFromString(xmlString, 'text/xml');
+      if (doc.querySelector('parsererror')) throw new Error('Файл ' + contentPath + ' повреждён или не является корректным fb2/xml');
+
+      const entries = {};
+      for (const [path, fileObj] of Object.entries(zip.files)){
+        if (!fileObj.dir) entries[path] = await fileObj.async('blob');
+      }
+      return { doc, isZip:true, zipEntries: entries, contentPath };
+    } else {
+      const text = new TextDecoder('utf-8').decode(buffer);
+      const doc = new DOMParser().parseFromString(text, 'text/xml');
+      if (doc.querySelector('parsererror')) throw new Error('Файл повреждён или не является корректным fb2/xml');
+      return { doc, isZip:false, zipEntries:{}, contentPath:null };
+    }
+  }
+
+  // ---------------- FictionBook helpers ----------------
+  function getMainBody(doc){
+    const bodies = Array.from(doc.getElementsByTagName('body'));
+    return bodies.find(b => !b.getAttribute('name')) || bodies[0] || null;
+  }
+  function findBinaryById(doc, id){
+    const binaries = Array.from(doc.getElementsByTagName('binary'));
+    return binaries.find(b => b.getAttribute('id') === id) || null;
+  }
+
+  // ---------------- body <-> plain text ----------------
+  function processSectionToLines(sectionEl, depth, lines){
+    const titleEl = sectionEl.querySelector(':scope > title');
+    if (titleEl){
+      const t = titleEl.textContent.replace(/\s+/g,' ').trim();
+      if (t) lines.push('#'.repeat(Math.min(depth,6)) + ' ' + t);
+    }
+    for (const child of Array.from(sectionEl.children)){
+      const tag = child.tagName.toLowerCase();
+      if (tag === 'title') continue;
+      if (tag === 'section'){ processSectionToLines(child, depth+1, lines); }
+      else if (tag === 'empty-line'){ /* skip, purely visual */ }
+      else {
+        const t = child.textContent.replace(/\s+/g,' ').trim();
+        if (t) lines.push(t);
+      }
+    }
+  }
+  function bodyToText(doc){
+    const body = getMainBody(doc);
+    if (!body) return '';
+    const lines = [];
+    for (const child of Array.from(body.children)){
+      const tag = child.tagName.toLowerCase();
+      if (tag === 'section') processSectionToLines(child, 1, lines);
+      else if (tag === 'title'){
+        const t = child.textContent.replace(/\s+/g,' ').trim();
+        if (t) lines.push('# ' + t);
+      } else {
+        const t = child.textContent.replace(/\s+/g,' ').trim();
+        if (t) lines.push(t);
+      }
+    }
+    return lines.join('\n');
+  }
+  function textToBodyChildren(text, doc){
+    const root = doc.createElement('body');
+    const stack = [{level:0, el:root}];
+    let active = null;
+    const lines = text.split('\n');
+    for (const raw of lines){
+      const m = raw.match(/^(#{1,6})\s+(.+)$/);
+      if (m){
+        const level = m[1].length;
+        const titleText = m[2].trim();
+        while (stack.length > 1 && stack[stack.length-1].level >= level) stack.pop();
+        const parent = stack[stack.length-1].el;
+        const sec = doc.createElement('section');
+        const titleEl = doc.createElement('title');
+        const p = doc.createElement('p');
+        p.textContent = titleText;
+        titleEl.appendChild(p);
+        sec.appendChild(titleEl);
+        parent.appendChild(sec);
+        stack.push({level, el:sec});
+        active = sec;
+      } else if (raw.trim() === ''){
+        continue;
+      } else {
+        if (!active){
+          const sec = doc.createElement('section');
+          root.appendChild(sec);
+          stack.push({level:1, el:sec});
+          active = sec;
+        }
+        const p = doc.createElement('p');
+        p.textContent = raw.trim();
+        active.appendChild(p);
+      }
+    }
+    return root;
+  }
+
+  // ---------------- chapters model ----------------
+  function linesToChapters(text){
+    const lines = text.split('\n');
+    const result = [];
+    let current = null;
+    for (const raw of lines){
+      const m = raw.match(/^(#{1,6})\s+(.+)$/);
+      if (m){
+        current = { level: m[1].length, title: m[2].trim(), paragraphs: [] };
+        result.push(current);
+      } else if (raw.trim() === ''){
+        continue;
+      } else {
+        if (!current){ current = { level:0, title:null, paragraphs: [] }; result.push(current); }
+        current.paragraphs.push(raw.trim());
+      }
+    }
+    if (!result.length) result.push({ level:0, title:null, paragraphs: [] });
+    return result;
+  }
+  function chaptersToText(list){
+    const lines = [];
+    for (const ch of list){
+      if (ch.level > 0){
+        lines.push('#'.repeat(ch.level) + ' ' + ((ch.title || '').trim() || 'Без названия'));
+      }
+      for (const p of ch.paragraphs){ if (p.trim() !== '') lines.push(p); }
+    }
+    return lines.join('\n');
+  }
+
+  function renderTOC(){
+    tocRow.innerHTML = '';
+    const items = chapters
+      .map((ch, idx) => ({ ch, idx }))
+      .filter(({ch}) => ch.level > 0 || ch.paragraphs.some(p => p.trim() !== '') || chapters.length === 1);
+
+    if (!items.length){
+      tocRow.innerHTML = '<span class="toc-empty">Оглавление появится здесь по мере ввода заголовков</span>';
+      return;
+    }
+    items.forEach(({ch, idx}) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      let cls = 'chip';
+      if (ch.level === 0) cls += ' lvl0';
+      else if (ch.level === 2) cls += ' lvl2';
+      else if (ch.level >= 3) cls += ' lvl3';
+      if (idx === activeChapter) cls += ' active';
+      chip.className = cls;
+      const label = ch.level === 0 ? 'Вступление' : (ch.title && ch.title.trim() ? ch.title.trim() : 'Без названия');
+      chip.textContent = label;
+      chip.title = label;
+      chip.addEventListener('click', () => selectChapter(idx));
+      tocRow.appendChild(chip);
+    });
+  }
+
+  function selectChapter(idx){
+    if (idx < 0 || idx >= chapters.length) return;
+    activeChapter = idx;
+    const ch = chapters[activeChapter];
+
+    chapterPosition.textContent = 'Глава ' + (activeChapter + 1) + ' из ' + chapters.length;
+    prevChapterBtn.disabled = activeChapter === 0;
+    nextChapterBtn.disabled = activeChapter === chapters.length - 1;
+
+    if (ch.level === 0){
+      prefaceNote.style.display = 'block';
+      chapterTitleBar.style.display = 'none';
+    } else {
+      prefaceNote.style.display = 'none';
+      chapterTitleBar.style.display = 'flex';
+      chapterTitleInput.value = ch.title || '';
+      chapterLevelSelect.value = String(ch.level);
+    }
+    chapterBodyText.value = ch.paragraphs.join('\n');
+
+    renderTOC();
+    const activeChip = tocRow.querySelector('.chip.active');
+    if (activeChip) activeChip.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+
+  chapterTitleInput.addEventListener('input', () => {
+    chapters[activeChapter].title = chapterTitleInput.value;
+    const activeChip = tocRow.querySelector('.chip.active');
+    if (activeChip) activeChip.textContent = chapterTitleInput.value.trim() || 'Без названия';
+  });
+  chapterLevelSelect.addEventListener('change', () => {
+    chapters[activeChapter].level = parseInt(chapterLevelSelect.value, 10);
+    renderTOC();
+  });
+  chapterBodyText.addEventListener('input', () => {
+    chapters[activeChapter].paragraphs = chapterBodyText.value.split('\n');
+  });
+
+  prevChapterBtn.addEventListener('click', () => selectChapter(activeChapter - 1));
+  nextChapterBtn.addEventListener('click', () => selectChapter(activeChapter + 1));
+
+  deleteChapterBtn.addEventListener('click', () => {
+    if (chapters.length <= 1){
+      chapters[0] = { level:0, title:null, paragraphs: [] };
+      selectChapter(0);
+      return;
+    }
+    chapters.splice(activeChapter, 1);
+    selectChapter(Math.min(activeChapter, chapters.length - 1));
+  });
+
+  // ---------------- cover UI ----------------
+  function renderCoverPreview(){
+    if (cover && !coverRemoved){
+      coverPreview.src = `data:${cover.mime};base64,${cover.base64}`;
+      coverPreview.style.display = 'block';
+      coverThumb.querySelector('svg').style.display = 'none';
+      coverRemoveBtn.style.display = 'inline';
+      coverDzLabel.textContent = 'Заменить обложку';
+    } else {
+      coverPreview.style.display = 'none';
+      coverThumb.querySelector('svg').style.display = 'block';
+      coverRemoveBtn.style.display = 'none';
+      coverDzLabel.textContent = 'Загрузить обложку с устройства';
+    }
+  }
+  async function handleCoverFile(file){
+    if (!file.type.startsWith('image/')){
+      showStatus('Обложка должна быть изображением (JPG или PNG)', true);
+      return;
+    }
+    const base64 = await fileToBase64(file);
+    const mime = file.type || 'image/jpeg';
+    const id = (cover && cover.id) || ('cover.' + extFromMime(mime));
+    cover = { base64, mime, id };
+    coverRemoved = false;
+    renderCoverPreview();
+  }
+  coverDropZone.addEventListener('click', () => coverInput.click());
+  coverDropZone.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); coverInput.click(); }});
+  coverDropZone.addEventListener('dragover', e => { e.preventDefault(); coverDropZone.classList.add('drag'); });
+  coverDropZone.addEventListener('dragleave', () => coverDropZone.classList.remove('drag'));
+  coverDropZone.addEventListener('drop', e => {
+    e.preventDefault(); coverDropZone.classList.remove('drag');
+    if (e.dataTransfer.files.length) handleCoverFile(e.dataTransfer.files[0]);
+  });
+  coverInput.addEventListener('change', e => { if (e.target.files.length) handleCoverFile(e.target.files[0]); });
+  coverRemoveBtn.addEventListener('click', () => { coverRemoved = true; cover = null; renderCoverPreview(); });
+
+  // ---------------- fill form from XML ----------------
+  function fillFormFromXML(doc){
+    const titleEl = doc.querySelector('title-info > book-title');
+    bookTitle.value = titleEl ? titleEl.textContent.trim() : '';
+
+    const firstName = doc.querySelector('title-info > author > first-name');
+    const lastName = doc.querySelector('title-info > author > last-name');
+    authorFirst.value = firstName ? firstName.textContent.trim() : '';
+    authorLast.value = lastName ? lastName.textContent.trim() : '';
+
+    const genreEl = doc.querySelector('title-info > genre');
+    genre.value = genreEl ? genreEl.textContent.trim() : '';
+
+    const annotEl = doc.querySelector('title-info > annotation > p');
+    annotation.value = annotEl ? annotEl.textContent.trim() : '';
+
+    cover = null; coverRemoved = false;
+    const coverEl = doc.querySelector('title-info > coverpage > image');
+    if (coverEl){
+      const href = coverEl.getAttribute('href') || coverEl.getAttribute('xlink:href') || coverEl.getAttribute('l:href');
+      if (href && href.startsWith('#')){
+        const id = href.substring(1);
+        const bin = findBinaryById(doc, id);
+        if (bin){
+          cover = { base64: bin.textContent.trim(), mime: bin.getAttribute('content-type') || 'image/jpeg', id };
+        }
+      }
+    }
+    renderCoverPreview();
+
+    chapters = linesToChapters(bodyToText(doc));
+    activeChapter = 0;
+    selectChapter(0);
+  }
+
+  // ---------------- build XML from form ----------------
+  function updateXMLFromForm(doc){
+    let titleInfo = doc.querySelector('title-info');
+    if (!titleInfo){
+      const description = doc.querySelector('description') || doc.documentElement.appendChild(doc.createElement('description'));
+      titleInfo = doc.createElement('title-info');
+      description.appendChild(titleInfo);
+    }
+
+    let el = titleInfo.querySelector('book-title');
+    if (!el){ el = doc.createElement('book-title'); titleInfo.appendChild(el); }
+    el.textContent = bookTitle.value.trim() || 'Без названия';
+
+    let author = titleInfo.querySelector('author');
+    if (!author){ author = doc.createElement('author'); titleInfo.appendChild(author); }
+    let fn = author.querySelector('first-name') || author.appendChild(doc.createElement('first-name'));
+    let ln = author.querySelector('last-name') || author.appendChild(doc.createElement('last-name'));
+    fn.textContent = authorFirst.value.trim() || 'Неизвестный';
+    ln.textContent = authorLast.value.trim() || 'Автор';
+
+    let genreEl = titleInfo.querySelector('genre');
+    if (!genreEl){ genreEl = doc.createElement('genre'); titleInfo.appendChild(genreEl); }
+    genreEl.textContent = genre.value.trim() || 'fiction';
+
+    let annot = titleInfo.querySelector('annotation');
+    if (!annot){ annot = doc.createElement('annotation'); titleInfo.appendChild(annot); }
+    let p = annot.querySelector('p') || annot.appendChild(doc.createElement('p'));
+    p.textContent = annotation.value.trim() || '';
+
+    // cover
+    let coverpage = titleInfo.querySelector('coverpage');
+    if (cover && !coverRemoved){
+      if (!coverpage){ coverpage = doc.createElement('coverpage'); titleInfo.appendChild(coverpage); }
+      let image = coverpage.querySelector('image');
+      if (!image){ image = doc.createElement('image'); coverpage.appendChild(image); }
+      image.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+      image.setAttribute('href', '#' + cover.id);
+      image.setAttribute('xlink:href', '#' + cover.id);
+
+      let bin = findBinaryById(doc, cover.id);
+      if (!bin){
+        bin = doc.createElement('binary');
+        bin.setAttribute('id', cover.id);
+        doc.documentElement.appendChild(bin);
+      }
+      bin.setAttribute('content-type', cover.mime);
+      bin.textContent = cover.base64;
+    } else {
+      if (coverpage) coverpage.remove();
+    }
+
+    // body text
+    const oldBody = getMainBody(doc);
+    const newBody = textToBodyChildren(chaptersToText(chapters), doc);
+    if (oldBody){
+      while (oldBody.firstChild) oldBody.removeChild(oldBody.firstChild);
+      while (newBody.firstChild) oldBody.appendChild(newBody.firstChild);
+    } else {
+      doc.documentElement.appendChild(newBody);
+    }
+
+    return doc;
+  }
+
+  // ---------------- save ----------------
+  async function saveFB2(){
+    if (!parsedDoc){ showStatus('Сначала загрузите файл', true); return; }
+    try {
+      const updatedDoc = updateXMLFromForm(parsedDoc);
+      let xmlString = new XMLSerializer().serializeToString(updatedDoc);
+      xmlString = '<?xml version="1.0" encoding="UTF-8"?>\n' + xmlString;
+
+      let blob, filename = currentFileName.replace(/\.zip$/i, '') || 'book.fb2';
+
+      if (isZip){
+        const zip = new JSZip();
+        zip.file(zipContentPath, xmlString);
+        for (const [path, blobData] of Object.entries(zipEntries)){
+          if (path !== zipContentPath) zip.file(path, blobData);
+        }
+        blob = await zip.generateAsync({ type:'blob' });
+        // keep the original archive name where possible, otherwise fall back to a sensible default
+        filename = /\.zip$/i.test(currentFileName)
+          ? currentFileName
+          : filename.replace(/\.fb2$/i,'') + '.fb2.zip';
+      } else {
+        blob = new Blob([xmlString], { type:'application/xml' });
+      }
+
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      showStatus('Файл сохранён и скачан');
+    } catch (e){
+      showStatus('Ошибка: ' + e.message, true);
+    }
+  }
+
+  // ---------------- load ----------------
+  async function loadFile(file){
+    try {
+      const result = await readFB2(file);
+      parsedDoc = result.doc;
+      isZip = result.isZip;
+      zipEntries = result.zipEntries || {};
+      zipContentPath = result.contentPath || 'content.xml';
+      currentFileName = file.name;
+
+      toolbarMeta.textContent = `${file.name} · ${(file.size/1024).toFixed(1)} КБ`;
+      intake.style.display = 'none';
+      editor.style.display = 'block';
+      editor.style.animation = 'none';
+      void editor.offsetWidth;
+      editor.style.animation = '';
+      hideStatus();
+      fillFormFromXML(parsedDoc);
+    } catch (e){
+      showStatus('Не удалось прочитать файл: ' + e.message, true);
+      editor.style.display = 'none';
+      intake.style.display = 'block';
+    }
+  }
+
+  // ---------------- events ----------------
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); fileInput.click(); }});
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag');
+    if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', e => { if (e.target.files.length) loadFile(e.target.files[0]); });
+
+  changeFileBtn.addEventListener('click', () => {
+    editor.style.display = 'none';
+    intake.style.display = 'block';
+    fileInput.value = '';
+    fileName.textContent = '';
+    parsedDoc = null;
+    hideStatus();
+  });
+
+  saveBtn.addEventListener('click', saveFB2);
+  resetBtn.addEventListener('click', () => {
+    if (parsedDoc){ fillFormFromXML(parsedDoc); showStatus('Изменения отменены — форма возвращена к исходному файлу'); }
+  });
+
+  function loadJSZip(){
+    return new Promise((resolve, reject) => {
+      if (typeof JSZip !== 'undefined') return resolve();
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+  loadJSZip().catch(() => showStatus('Не удалось загрузить библиотеку для работы с архивами fb2.zip', true));
+
+})();
+</script>
+</body>
+</html>
