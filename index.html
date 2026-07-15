@@ -1308,10 +1308,23 @@
   // Google's public (keyless) quota is easy to hit with quick repeat searches — a single
   // short retry after a 429 is usually enough, since the quota window is very short
   async function searchGoogleBooksCovers(query, signal){
-    const url = 'https://google-proxy-v3.rbyrirsci.workers.dev?q=' + encodeURIComponent(query);
-    const res = await fetch(url, { signal });
-    if (!res.ok) throw new Error('Google Books HTTP ' + res.status);
-    const data = await res.json();
+    // primary path: Google's public Books API supports CORS and needs no key for search,
+    // so we hit it directly — no proxy in the loop to go down or rate-limit us.
+    let data;
+    try {
+      const directUrl = 'https://www.googleapis.com/books/v1/volumes?q=' + encodeURIComponent(query) + '&maxResults=20';
+      const res = await fetch(directUrl, { signal });
+      if (!res.ok) throw new Error('Google Books HTTP ' + res.status);
+      data = await res.json();
+    } catch (e){
+      if (signal && signal.aborted) throw e;
+      // fallback path: our own proxy worker, kept around in case Google ever blocks
+      // direct browser calls from some networks
+      const proxyUrl = 'https://google-proxy-v3.rbyrirsci.workers.dev?q=' + encodeURIComponent(query);
+      const res2 = await fetch(proxyUrl, { signal });
+      if (!res2.ok) throw new Error('Google Books HTTP ' + res2.status);
+      data = await res2.json();
+    }
     const out = [];
     for (const item of (data.items || [])){
       const links = item.volumeInfo && item.volumeInfo.imageLinks;
@@ -1469,20 +1482,27 @@
   tile.classList.add('selecting');
   overlay.innerHTML = '<span class="mini-spinner mini-spinner-lg"></span>';
   try {
-    // ИСПОЛЬЗУЕМ Worker ДЛЯ ЗАГРУЗКИ ИЗОБРАЖЕНИЯ
-    const workerUrl = 'https://google-proxy-v3.rbyrirsci.workers.dev/?image=' + encodeURIComponent(candidate.url);
-    const response = await fetch(workerUrl);
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Не удалось загрузить изображение');
+    let base64, mime;
+    try {
+      // primary path: fetch the bytes directly (works whenever the host sends CORS
+      // headers, which covers most sources including Google-hosted thumbnails)
+      const direct = await imageUrlToBase64(candidate.url);
+      base64 = direct.base64; mime = direct.mime;
+    } catch (directErr){
+      // fallback path: our own proxy worker, for hosts that block cross-origin reads
+      const workerUrl = 'https://google-proxy-v3.rbyrirsci.workers.dev/?image=' + encodeURIComponent(candidate.url);
+      const response = await fetch(workerUrl);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Не удалось загрузить изображение');
+      }
+      const data = await response.json();
+      base64 = data.base64; mime = data.mime;
     }
-    
-    const data = await response.json();
-    
+
     // Сохраняем обложку в книгу
-    const id = (cover && cover.id) || ('cover.' + (data.mime.includes('png') ? 'png' : 'jpg'));
-    cover = { base64: data.base64, mime: data.mime, id };
+    const id = (cover && cover.id) || ('cover.' + (mime.includes('png') ? 'png' : 'jpg'));
+    cover = { base64, mime, id };
     coverRemoved = false;
     renderCoverPreview();
     closeCoverSearch();
