@@ -1308,7 +1308,7 @@
   // Google's public (keyless) quota is easy to hit with quick repeat searches — a single
   // short retry after a 429 is usually enough, since the quota window is very short
   async function searchGoogleBooksCovers(query, signal){
-    const url = 'https://wandering-dream-ffa6.rbyrirsci.workers.dev?q=' + encodeURIComponent(query);
+    const url = 'https://google-proxy-v3.rbyrirsci.workers.dev?q=' + encodeURIComponent(query);
     const res = await fetch(url, { signal });
     if (!res.ok) throw new Error('Google Books HTTP ' + res.status);
     const data = await res.json();
