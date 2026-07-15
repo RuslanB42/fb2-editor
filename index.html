@@ -1314,17 +1314,24 @@
     const docs = (data.response && data.response.docs) || [];
     return docs.map(d => ({ url: 'https://archive.org/services/img/' + d.identifier, source: 'Internet Archive', title: d.title }));
   }
-  // shared by the ru/en wrappers below — same MediaWiki API, just a different wiki
+  // shared by the ru/en wrappers below — same MediaWiki API, just a different wiki.
+  // pageterms gives a short Wikidata-style description ("писатель", "novelist"...) alongside
+  // the image, which lets us throw out author/actor bio pages that would otherwise surface
+  // a portrait instead of a cover.
+  const PERSON_DESCRIPTION_RE = /писател|поэт|драматург|прозаик|публицист|журналист|литературовед|критик|переводчик|актёр|актер|actress|actor|writer|novelist|poet|playwright|journalist|author|born\b|died\b|politician|singer|музыкант|композитор|режиссёр|режиссер/i;
   async function searchWikipediaCovers(query, signal, lang){
     const res = await fetch('https://' + lang + '.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=' +
-      encodeURIComponent(query) + '&gsrlimit=6&prop=pageimages&piprop=original&format=json&origin=*', { signal });
+      encodeURIComponent(query) + '&gsrlimit=8&prop=pageimages|pageterms&piprop=original&wbptterms=description&format=json&origin=*', { signal });
     if (!res.ok) throw new Error('Wikipedia HTTP ' + res.status);
     const data = await res.json();
     const pages = (data.query && data.query.pages) || {};
     const out = [];
     for (const key in pages){
       const p = pages[key];
-      if (p.original && p.original.source) out.push({ url: p.original.source, source: 'Wikipedia', title: p.title });
+      if (!(p.original && p.original.source)) continue;
+      const desc = (p.terms && p.terms.description && p.terms.description[0]) || '';
+      if (PERSON_DESCRIPTION_RE.test(desc)) continue; // likely a biography page, not the book itself
+      out.push({ url: p.original.source, source: 'Wikipedia', title: p.title });
     }
     return out;
   }
@@ -1344,6 +1351,42 @@
       const info = p.imageinfo && p.imageinfo[0];
       const url = info && (info.thumburl || info.url);
       if (url) out.push({ url, source: 'Wikimedia Commons', title: (p.title || '').replace(/^File:/, '') });
+    }
+    return out;
+  }
+  // Wikidata: look up matching entities, then keep only ones actually typed as a written
+  // work (novel / book / literary work / edition) before pulling their P18 image — this is
+  // what keeps this source from ever handing back an author's portrait.
+  async function searchWikidataCovers(query, signal){
+    const searchRes = await fetch('https://www.wikidata.org/w/api.php?action=wbsearchentities&search=' +
+      encodeURIComponent(query) + '&language=ru&uselang=ru&type=item&limit=10&format=json&origin=*', { signal });
+    if (!searchRes.ok) throw new Error('Wikidata HTTP ' + searchRes.status);
+    const searchData = await searchRes.json();
+    const ids = (searchData.search || []).map(s => s.id);
+    if (!ids.length) return [];
+    const entRes = await fetch('https://www.wikidata.org/w/api.php?action=wbgetentities&ids=' +
+      ids.join('|') + '&props=claims|labels&languages=ru|en&format=json&origin=*', { signal });
+    if (!entRes.ok) throw new Error('Wikidata HTTP ' + entRes.status);
+    const entData = await entRes.json();
+    // Q7725634 literary work, Q8261 novel, Q571 book, Q47461344 written work, Q1667921 edition, Q1372064 short story
+    const bookTypes = new Set(['Q7725634','Q8261','Q571','Q47461344','Q1667921','Q1372064']);
+    const out = [];
+    for (const id in (entData.entities || {})){
+      const ent = entData.entities[id];
+      const claims = ent.claims || {};
+      const instanceOf = (claims.P31 || [])
+        .map(c => c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value && c.mainsnak.datavalue.value.id)
+        .filter(Boolean);
+      if (!instanceOf.some(t => bookTypes.has(t))) continue;
+      const imageClaim = claims.P18 && claims.P18[0];
+      const filename = imageClaim && imageClaim.mainsnak && imageClaim.mainsnak.datavalue && imageClaim.mainsnak.datavalue.value;
+      if (!filename) continue;
+      const label = (ent.labels && (ent.labels.ru || ent.labels.en) && (ent.labels.ru || ent.labels.en).value) || query;
+      out.push({
+        url: 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(filename) + '?width=1200',
+        source: 'Wikidata',
+        title: label
+      });
     }
     return out;
   }
@@ -1381,7 +1424,7 @@
     coverSearchController = controller;
     coverSearchBody.innerHTML = '<div class="cover-search-state"><span class="mini-spinner"></span>Ищем обложки по нескольким библиотекам…</div>';
 
-    const sourceFns = [searchOpenLibraryCovers, searchArchiveOrgCovers, searchWikipediaRuCovers, searchWikipediaEnCovers, searchWikimediaCommonsCovers, searchITunesCovers];
+    const sourceFns = [searchOpenLibraryCovers, searchArchiveOrgCovers, searchWikipediaRuCovers, searchWikipediaEnCovers, searchWikimediaCommonsCovers, searchWikidataCovers, searchITunesCovers];
     const total = sourceFns.length;
     let done = 0, combined = [];
 
