@@ -1308,7 +1308,7 @@
   // Google's public (keyless) quota is easy to hit with quick repeat searches — a single
   // short retry after a 429 is usually enough, since the quota window is very short.
   async function searchGoogleBooksCovers(query, signal){
-    const url = 'https://www.googleapis.com/books/v1/volumes?q=' + encodeURIComponent(query) + '&maxResults=20';
+    const url = 'https://www.googleapis.com/books/v1/volumes?q=' + encodeURIComponent(query) + '&maxResults=20' + '&key=AlzaSyCTU3qKJ7EvRj4B5-2tUyf-YKr2SJnAW8I';
     let res = await fetch(url, { signal });
     if (res.status === 429){
       await new Promise(r => setTimeout(r, 1200));
