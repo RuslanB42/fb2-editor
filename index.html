@@ -1465,22 +1465,26 @@
   }
 
   async function selectCoverFromWeb(candidate, tile, overlay){
-    if (tile.classList.contains('selecting')) return;
-    tile.classList.add('selecting');
-    overlay.innerHTML = '<span class="mini-spinner mini-spinner-lg"></span>';
-    try {
-      const { base64, mime } = await imageUrlToBase64(candidate.url);
-      const id = (cover && cover.id) || ('cover.' + extFromMime(mime));
-      cover = { base64, mime, id };
-      coverRemoved = false;
-      renderCoverPreview();
-      closeCoverSearch();
-      showStatus('Обложка добавлена');
-    } catch (err){
-      overlay.innerHTML = '<span class="cover-tile-error-text">Не удалось загрузить.<br>Попробуйте другую</span>';
-      setTimeout(() => { tile.classList.remove('selecting'); overlay.innerHTML = ''; }, 3000);
-    }
+  if (tile.classList.contains('selecting')) return;
+  tile.classList.add('selecting');
+  overlay.innerHTML = '<span class="mini-spinner mini-spinner-lg"></span>';
+  try {
+    const workerUrl = 'https://google-proxy-v3.rbyrirsci.workers.dev/?image=' + encodeURIComponent(candidate.url);
+    const response = await fetch(workerUrl);
+    if (!response.ok) throw new Error('Не удалось загрузить изображение');
+    const data = await response.json();
+    
+    const id = (cover && cover.id) || ('cover.' + (data.mime.includes('png') ? 'png' : 'jpg'));
+    cover = { base64: data.base64, mime: data.mime, id };
+    coverRemoved = false;
+    renderCoverPreview();
+    closeCoverSearch();
+    showStatus('Обложка добавлена');
+  } catch (err){
+    overlay.innerHTML = '<span class="cover-tile-error-text">Не удалось загрузить.<br>Попробуйте другую</span>';
+    setTimeout(() => { tile.classList.remove('selecting'); overlay.innerHTML = ''; }, 3000);
   }
+}
 
   function blobToBase64(blob){
     return new Promise((resolve, reject) => {
