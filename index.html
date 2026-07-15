@@ -1305,37 +1305,6 @@
     }
     return out.slice(0, 20);
   }
-  // Google's public (keyless) quota is easy to hit with quick repeat searches — a single
-  // short retry after a 429 is usually enough, since the quota window is very short
-  async function searchGoogleBooksCovers(query, signal){
-    // primary path: Google's public Books API supports CORS and needs no key for search,
-    // so we hit it directly — no proxy in the loop to go down or rate-limit us.
-    let data;
-    try {
-      const directUrl = 'https://www.googleapis.com/books/v1/volumes?q=' + encodeURIComponent(query) + '&maxResults=20';
-      const res = await fetch(directUrl, { signal });
-      if (!res.ok) throw new Error('Google Books HTTP ' + res.status);
-      data = await res.json();
-    } catch (e){
-      if (signal && signal.aborted) throw e;
-      // fallback path: our own proxy worker, kept around in case Google ever blocks
-      // direct browser calls from some networks
-      const proxyUrl = 'https://google-proxy-v3.rbyrirsci.workers.dev?q=' + encodeURIComponent(query);
-      const res2 = await fetch(proxyUrl, { signal });
-      if (!res2.ok) throw new Error('Google Books HTTP ' + res2.status);
-      data = await res2.json();
-    }
-    const out = [];
-    for (const item of (data.items || [])){
-      const links = item.volumeInfo && item.volumeInfo.imageLinks;
-      if (!links) continue;
-      let url2 = links.extraLarge || links.large || links.medium || links.thumbnail || links.smallThumbnail;
-      if (!url2) continue;
-      url2 = url2.replace(/^http:/, 'https:').replace(/&edge=curl/, '').replace('zoom=1', 'zoom=0');
-      out.push({ url: url2, source: 'Google Books', title: item.volumeInfo.title });
-    }
-    return out;
-  }
   async function searchArchiveOrgCovers(query, signal){
     const q = 'title:(' + query + ') AND mediatype:texts';
     const res = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent(q) +
@@ -1345,8 +1314,9 @@
     const docs = (data.response && data.response.docs) || [];
     return docs.map(d => ({ url: 'https://archive.org/services/img/' + d.identifier, source: 'Internet Archive', title: d.title }));
   }
-  async function searchWikipediaCovers(query, signal){
-    const res = await fetch('https://ru.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=' +
+  // shared by the ru/en wrappers below — same MediaWiki API, just a different wiki
+  async function searchWikipediaCovers(query, signal, lang){
+    const res = await fetch('https://' + lang + '.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=' +
       encodeURIComponent(query) + '&gsrlimit=6&prop=pageimages&piprop=original&format=json&origin=*', { signal });
     if (!res.ok) throw new Error('Wikipedia HTTP ' + res.status);
     const data = await res.json();
@@ -1355,6 +1325,25 @@
     for (const key in pages){
       const p = pages[key];
       if (p.original && p.original.source) out.push({ url: p.original.source, source: 'Wikipedia', title: p.title });
+    }
+    return out;
+  }
+  const searchWikipediaRuCovers = (query, signal) => searchWikipediaCovers(query, signal, 'ru');
+  const searchWikipediaEnCovers = (query, signal) => searchWikipediaCovers(query, signal, 'en');
+  // Wikimedia Commons often has scanned book covers filed under File: even when there's
+  // no Wikipedia article at all — same keyless MediaWiki API, just searching file pages
+  async function searchWikimediaCommonsCovers(query, signal){
+    const res = await fetch('https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=' +
+      encodeURIComponent(query + ' book cover') + '&gsrnamespace=6&gsrlimit=10&prop=imageinfo&iiprop=url|size&iiurlwidth=1200&format=json&origin=*', { signal });
+    if (!res.ok) throw new Error('Wikimedia Commons HTTP ' + res.status);
+    const data = await res.json();
+    const pages = (data.query && data.query.pages) || {};
+    const out = [];
+    for (const key in pages){
+      const p = pages[key];
+      const info = p.imageinfo && p.imageinfo[0];
+      const url = info && (info.thumburl || info.url);
+      if (url) out.push({ url, source: 'Wikimedia Commons', title: (p.title || '').replace(/^File:/, '') });
     }
     return out;
   }
@@ -1392,7 +1381,7 @@
     coverSearchController = controller;
     coverSearchBody.innerHTML = '<div class="cover-search-state"><span class="mini-spinner"></span>Ищем обложки по нескольким библиотекам…</div>';
 
-    const sourceFns = [searchOpenLibraryCovers, searchGoogleBooksCovers, searchArchiveOrgCovers, searchWikipediaCovers, searchITunesCovers];
+    const sourceFns = [searchOpenLibraryCovers, searchArchiveOrgCovers, searchWikipediaRuCovers, searchWikipediaEnCovers, searchWikimediaCommonsCovers, searchITunesCovers];
     const total = sourceFns.length;
     let done = 0, combined = [];
 
