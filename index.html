@@ -106,7 +106,7 @@
   .brand h1{
     font-family:'Fraunces',serif;font-weight:650;font-size:26px;letter-spacing:-0.01em;margin:0;color:var(--ink);
   }
-  .brand .tag{font-size:13px;color:var(--ink-faint);font-family:'IBM Plex Mono',monospace;}
+  .brand .tag{display:none;}
 
   /* ---------- upload state ---------- */
   .intake{
@@ -211,19 +211,104 @@
     content:"";position:absolute;left:0;top:0;bottom:0;width:5px;
     background:linear-gradient(to right, rgba(0,0,0,.18), rgba(0,0,0,0));
   }
-  .cover-controls{flex:1;min-width:0;}
+  .cover-controls{flex:1;min-width:0;display:flex;gap:10px;align-items:stretch;}
   .cover-dropzone{
-    border:1.5px dashed var(--line-strong);border-radius:var(--r-sm);padding:14px 12px;
+    flex:1;min-width:0;border:1.5px dashed var(--line-strong);border-radius:var(--r-md);padding:14px 12px;
     cursor:pointer;font-size:13px;color:var(--ink-soft);transition:border-color .15s,background .15s;
-    display:flex;align-items:center;gap:8px;
+    display:flex;align-items:center;justify-content:center;gap:8px;
   }
   .cover-dropzone:hover, .cover-dropzone.drag{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-dark);}
   .cover-dropzone input{display:none;}
   .cover-dropzone svg{width:16px;height:16px;flex:none;}
-  .cover-actions{display:flex;gap:14px;margin-top:10px;align-items:center;}
-  .tiny-btn{background:none;border:none;padding:0;font-size:12.5px;color:var(--ink-faint);cursor:pointer;font-family:'IBM Plex Sans',sans-serif;}
-  .tiny-btn:hover{color:var(--danger);}
-  .tiny-btn.accent:hover{color:var(--accent);}
+  .cover-remove-btn{
+    flex:none;width:52px;border:1.5px dashed var(--line-strong);border-radius:var(--r-md);
+    background:var(--page);color:var(--ink-faint);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:border-color .15s,background .15s,color .15s;
+  }
+  .cover-remove-btn:hover{border-color:var(--danger);color:var(--danger);background:var(--danger-soft);}
+  .cover-remove-btn svg{width:16px;height:16px;}
+
+  /* ---------- cover source / web search modals ---------- */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(20,26,22,.5);backdrop-filter:blur(2px);
+    display:none;align-items:center;justify-content:center;z-index:100;padding:20px;
+  }
+  .modal-box{
+    background:var(--page);border-radius:var(--r-lg);box-shadow:var(--shadow-page);
+    display:flex;flex-direction:column;max-height:90vh;width:100%;overflow:hidden;
+  }
+  .modal-box-sm{max-width:360px;}
+  .modal-box-lg{max-width:740px;}
+  .modal-head{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:16px 20px;border-bottom:1px solid var(--line);flex:none;
+  }
+  .modal-head h3{font-family:'Fraunces',serif;font-size:16.5px;font-weight:600;margin:0;color:var(--ink);}
+  .modal-close{
+    width:30px;height:30px;flex:none;border-radius:50%;border:1px solid var(--line-strong);
+    background:var(--page);color:var(--ink-soft);cursor:pointer;font-size:17px;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .modal-close:hover{border-color:var(--accent);color:var(--accent);}
+
+  .cover-source-options{display:flex;gap:12px;padding:22px 20px;}
+  .cover-source-opt{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px 12px;
+    border:1.5px dashed var(--line-strong);border-radius:var(--r-md);background:var(--page);
+    color:var(--ink-soft);cursor:pointer;font-size:13.5px;font-family:'IBM Plex Sans',sans-serif;
+    transition:border-color .15s,background .15s,color .15s;
+  }
+  .cover-source-opt svg{width:24px;height:24px;}
+  .cover-source-opt:hover{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-dark);}
+
+  .cover-search-bar{display:flex;gap:10px;padding:14px 20px;border-bottom:1px solid var(--line);flex:none;}
+  .cover-search-bar input{flex:1;}
+  .cover-search-bar .btn{padding:11px 18px;flex:none;}
+  .cover-search-body{padding:18px 20px 20px;overflow-y:auto;}
+
+  .cover-search-state{
+    font-size:13px;color:var(--ink-faint);text-align:center;padding:34px 10px;
+  }
+  .cover-search-state-inline{padding:16px 10px 4px;}
+
+  .mini-spinner{
+    width:13px;height:13px;border-radius:50%;flex:none;
+    border:2px solid var(--line-strong);border-top-color:var(--accent);
+    display:inline-block;vertical-align:-2px;margin-right:7px;animation:spin .7s linear infinite;
+  }
+  .mini-spinner-lg{width:22px;height:22px;border-width:3px;margin-right:0;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .cover-results-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(126px,1fr));gap:12px;
+  }
+  .cover-result{
+    position:relative;aspect-ratio:2/3;border-radius:var(--r-sm);overflow:hidden;cursor:pointer;
+    border:1px solid var(--line);background:var(--page-shade);
+    transition:border-color .15s,box-shadow .15s,transform .1s;
+  }
+  .cover-result:hover{border-color:var(--accent);box-shadow:0 8px 18px -10px rgba(20,26,22,.4);}
+  .cover-result:active{transform:scale(.98);}
+  .cover-result img{width:100%;height:100%;object-fit:cover;display:block;}
+  .cover-quality-badge{
+    position:absolute;top:6px;right:6px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;
+    padding:2px 6px;border-radius:20px;background:rgba(20,26,22,.7);color:#fff;letter-spacing:.01em;
+  }
+  .cover-quality-badge.q-high{background:rgba(43,110,85,.88);}
+  .cover-quality-badge.q-mid{background:rgba(173,129,72,.88);}
+  .cover-quality-badge.q-low{background:rgba(178,71,48,.88);}
+  .cover-source-badge{
+    position:absolute;bottom:6px;left:6px;right:6px;font-size:9.5px;padding:2px 6px;border-radius:20px;
+    background:rgba(251,251,246,.9);color:#1E2420;font-family:'IBM Plex Sans',sans-serif;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;
+  }
+  html.dark .cover-source-badge{background:rgba(28,32,24,.85);color:#EAEFE3;}
+  .cover-tile-overlay{
+    position:absolute;inset:0;background:rgba(20,26,22,.6);display:none;
+    align-items:center;justify-content:center;text-align:center;padding:8px;
+  }
+  .cover-result.selecting .cover-tile-overlay{display:flex;}
+  .cover-tile-error-text{color:#fff;font-size:11px;line-height:1.4;}
 
   /* genre */
   select, input#genre{cursor:text;}
@@ -253,7 +338,8 @@
   .nav-icon-btn:hover{border-color:var(--accent);color:var(--accent);}
   .nav-icon-btn:disabled{opacity:.35;pointer-events:none;}
 
-  .preface-note{font-size:12.5px;color:var(--ink-faint);margin-bottom:10px;font-style:italic;}
+  .preface-note{font-size:12.5px;color:var(--ink-faint);font-style:italic;}
+  .preface-note:empty{margin:0;}
 
   .chapter-title-bar{display:flex;gap:8px;margin-bottom:10px;}
   .chapter-title-bar input{
@@ -323,6 +409,11 @@
     .cover-row{gap:12px;}
     .cover-thumb{width:80px;height:110px;}
     .cover-dropzone{padding:12px 10px;font-size:12.5px;}
+
+    .modal-overlay{padding:0;align-items:flex-end;}
+    .modal-box{max-width:none;width:100%;max-height:88vh;border-radius:20px 20px 0 0;}
+    .cover-source-options{flex-direction:column;}
+    .cover-results-grid{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;}
 
     .chapter-title-bar{flex-wrap:wrap;}
     .chapter-title-bar input{flex:1 1 100%;}
@@ -429,12 +520,9 @@
               <span id="coverDzLabel">Загрузить обложку с устройства</span>
               <input type="file" id="coverInput" accept="image/*">
             </div>
-            <div class="cover-actions">
-              <button class="icon-round-btn danger" id="coverRemoveBtn" type="button" style="display:none;" title="Удалить обложку" aria-label="Удалить обложку">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>
-              </button>
-            </div>
-            <div class="hint">JPG или PNG, будет встроена прямо в файл fb2.</div>
+            <button class="cover-remove-btn" id="coverRemoveBtn" type="button" style="display:none;" title="Удалить обложку" aria-label="Удалить обложку">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>
+            </button>
           </div>
         </div>
 
@@ -505,7 +593,7 @@
             </div>
           </div>
 
-          <div id="prefaceNote" class="preface-note" style="display:none;">Текст до первой главы книги — необязательный пролог без заголовка.</div>
+          <div id="prefaceNote" class="preface-note" style="display:none;"></div>
 
           <div class="chapter-title-bar" id="chapterTitleBar">
             <input type="text" id="chapterTitleInput" placeholder="Заголовок главы">
@@ -524,7 +612,6 @@
 
           <textarea id="chapterBodyText" spellcheck="false" placeholder="Текст главы…"></textarea>
         </div>
-        <div class="hint">Клик по главе в оглавлении переключает редактор на неё. Каждая новая строка в тексте — отдельный абзац.</div>
       </div>
     </div>
 
@@ -539,6 +626,41 @@
         <span id="statusText"></span>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ================= COVER: choose source modal ================= -->
+<div class="modal-overlay" id="coverSourceOverlay">
+  <div class="modal-box modal-box-sm">
+    <div class="modal-head">
+      <h3>Добавить обложку</h3>
+      <button class="modal-close" id="coverSourceClose" type="button" aria-label="Закрыть">×</button>
+    </div>
+    <div class="cover-source-options">
+      <button class="cover-source-opt" id="coverSourceDevice" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 4v12"/><path d="M8 8l4-4 4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        <span>С устройства</span>
+      </button>
+      <button class="cover-source-opt" id="coverSourceWeb" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <span>Из интернета</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= COVER: web search modal ================= -->
+<div class="modal-overlay" id="coverSearchOverlay">
+  <div class="modal-box modal-box-lg">
+    <div class="modal-head">
+      <h3>Поиск обложки в интернете</h3>
+      <button class="modal-close" id="coverSearchClose" type="button" aria-label="Закрыть">×</button>
+    </div>
+    <div class="cover-search-bar">
+      <input type="text" id="coverSearchInput" placeholder="Название книги, автор…">
+      <button class="btn btn-primary" id="coverSearchBtn" type="button">Искать</button>
+    </div>
+    <div class="cover-search-body" id="coverSearchBody"></div>
   </div>
 </div>
 
@@ -595,6 +717,16 @@
   const coverDzLabel = document.getElementById('coverDzLabel');
   const coverInput = document.getElementById('coverInput');
   const coverRemoveBtn = document.getElementById('coverRemoveBtn');
+  const coverSourceOverlay = document.getElementById('coverSourceOverlay');
+  const coverSourceDevice = document.getElementById('coverSourceDevice');
+  const coverSourceWeb = document.getElementById('coverSourceWeb');
+  const coverSourceClose = document.getElementById('coverSourceClose');
+  const coverSearchOverlay = document.getElementById('coverSearchOverlay');
+  const coverSearchClose = document.getElementById('coverSearchClose');
+  const coverSearchInput = document.getElementById('coverSearchInput');
+  const coverSearchBtn = document.getElementById('coverSearchBtn');
+  const coverSearchBody = document.getElementById('coverSearchBody');
+  let coverSearchController = null;
 
   const saveBtn = document.getElementById('saveBtn');
   const resetBtn = document.getElementById('resetBtn');
@@ -1090,7 +1222,7 @@
       coverPreview.style.display = 'none';
       coverThumb.querySelector('svg').style.display = 'block';
       coverRemoveBtn.style.display = 'none';
-      coverDzLabel.textContent = 'Загрузить обложку с устройства';
+      coverDzLabel.textContent = 'Добавить обложку';
     }
   }
   async function handleCoverFile(file){
@@ -1105,8 +1237,11 @@
     coverRemoved = false;
     renderCoverPreview();
   }
-  coverDropZone.addEventListener('click', () => coverInput.click());
-  coverDropZone.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); coverInput.click(); }});
+
+  // clicking / activating the dropzone now opens a "device or internet" chooser;
+  // drag-and-drop of a local file still works directly, as before
+  coverDropZone.addEventListener('click', () => openCoverSourceOverlay());
+  coverDropZone.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); openCoverSourceOverlay(); }});
   coverDropZone.addEventListener('dragover', e => { e.preventDefault(); coverDropZone.classList.add('drag'); });
   coverDropZone.addEventListener('dragleave', () => coverDropZone.classList.remove('drag'));
   coverDropZone.addEventListener('drop', e => {
@@ -1115,6 +1250,252 @@
   });
   coverInput.addEventListener('change', e => { if (e.target.files.length) handleCoverFile(e.target.files[0]); });
   coverRemoveBtn.addEventListener('click', () => { coverRemoved = true; cover = null; renderCoverPreview(); });
+
+  // ---------------- cover source chooser (device vs internet) ----------------
+  function openCoverSourceOverlay(){ coverSourceOverlay.style.display = 'flex'; }
+  function closeCoverSourceOverlay(){ coverSourceOverlay.style.display = 'none'; }
+  coverSourceDevice.addEventListener('click', () => { closeCoverSourceOverlay(); coverInput.click(); });
+  coverSourceWeb.addEventListener('click', () => { closeCoverSourceOverlay(); openCoverSearch(); });
+  coverSourceClose.addEventListener('click', closeCoverSourceOverlay);
+  coverSourceOverlay.addEventListener('click', e => { if (e.target === coverSourceOverlay) closeCoverSourceOverlay(); });
+
+  // ---------------- cover web search ----------------
+  function openCoverSearch(){
+    coverSearchOverlay.style.display = 'flex';
+    const title = bookTitle.value.trim();
+    const author = [authorFirst.value.trim(), authorLast.value.trim()].filter(Boolean).join(' ');
+    const query = [title, author].filter(Boolean).join(' ');
+    coverSearchInput.value = query;
+    setTimeout(() => coverSearchInput.focus(), 30);
+    if (query) runCoverSearch(query);
+    else coverSearchBody.innerHTML = '<div class="cover-search-state">Введите название книги и нажмите «Искать».</div>';
+  }
+  function closeCoverSearch(){
+    coverSearchOverlay.style.display = 'none';
+    if (coverSearchController) coverSearchController.abort();
+  }
+  coverSearchClose.addEventListener('click', closeCoverSearch);
+  coverSearchOverlay.addEventListener('click', e => { if (e.target === coverSearchOverlay) closeCoverSearch(); });
+  coverSearchBtn.addEventListener('click', () => runCoverSearch(coverSearchInput.value));
+  coverSearchInput.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); runCoverSearch(coverSearchInput.value); }});
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (coverSearchOverlay.style.display === 'flex') closeCoverSearch();
+    else if (coverSourceOverlay.style.display === 'flex') closeCoverSourceOverlay();
+  });
+
+  // each search function returns an array of { url, source, title } candidates.
+  // failures are isolated per-source so one broken library never blocks the others.
+  async function searchOpenLibraryCovers(query, signal){
+    const res = await fetch('https://openlibrary.org/search.json?q=' + encodeURIComponent(query) +
+      '&fields=title,cover_i,edition_key&limit=14', { signal });
+    if (!res.ok) throw new Error('Open Library HTTP ' + res.status);
+    const data = await res.json();
+    const out = [], seen = new Set();
+    for (const doc of (data.docs || [])){
+      if (doc.cover_i && !seen.has(doc.cover_i)){
+        seen.add(doc.cover_i);
+        out.push({ url: 'https://covers.openlibrary.org/b/id/' + doc.cover_i + '-L.jpg', source: 'Open Library', title: doc.title });
+      }
+      if (doc.edition_key){
+        for (const olid of doc.edition_key.slice(0, 2)){
+          out.push({ url: 'https://covers.openlibrary.org/b/olid/' + olid + '-L.jpg', source: 'Open Library', title: doc.title });
+        }
+      }
+    }
+    return out.slice(0, 18);
+  }
+  async function searchGoogleBooksCovers(query, signal){
+    const res = await fetch('https://www.googleapis.com/books/v1/volumes?q=' + encodeURIComponent(query) + '&maxResults=24', { signal });
+    if (!res.ok) throw new Error('Google Books HTTP ' + res.status);
+    const data = await res.json();
+    const out = [];
+    for (const item of (data.items || [])){
+      const links = item.volumeInfo && item.volumeInfo.imageLinks;
+      if (!links) continue;
+      let url = links.extraLarge || links.large || links.medium || links.thumbnail || links.smallThumbnail;
+      if (!url) continue;
+      url = url.replace(/^http:/, 'https:').replace(/&edge=curl/, '').replace('zoom=1', 'zoom=0');
+      out.push({ url, source: 'Google Books', title: item.volumeInfo.title });
+    }
+    return out;
+  }
+  async function searchArchiveOrgCovers(query, signal){
+    const q = 'title:(' + query + ') AND mediatype:texts';
+    const res = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent(q) +
+      '&fl[]=identifier&fl[]=title&rows=14&page=1&output=json', { signal });
+    if (!res.ok) throw new Error('Internet Archive HTTP ' + res.status);
+    const data = await res.json();
+    const docs = (data.response && data.response.docs) || [];
+    return docs.map(d => ({ url: 'https://archive.org/services/img/' + d.identifier, source: 'Internet Archive', title: d.title }));
+  }
+  async function searchWikipediaCovers(query, signal){
+    const res = await fetch('https://ru.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=' +
+      encodeURIComponent(query) + '&gsrlimit=6&prop=pageimages&piprop=original&format=json&origin=*', { signal });
+    if (!res.ok) throw new Error('Wikipedia HTTP ' + res.status);
+    const data = await res.json();
+    const pages = (data.query && data.query.pages) || {};
+    const out = [];
+    for (const key in pages){
+      const p = pages[key];
+      if (p.original && p.original.source) out.push({ url: p.original.source, source: 'Wikipedia', title: p.title });
+    }
+    return out;
+  }
+
+  async function runCoverSearch(query){
+    query = (query || '').trim();
+    if (!query){
+      coverSearchBody.innerHTML = '<div class="cover-search-state">Введите название книги и нажмите «Искать».</div>';
+      return;
+    }
+    if (coverSearchController) coverSearchController.abort();
+    const controller = new AbortController();
+    coverSearchController = controller;
+    coverSearchBody.innerHTML = '<div class="cover-search-state"><span class="mini-spinner"></span>Ищем обложки по нескольким библиотекам…</div>';
+
+    const sourceFns = [searchOpenLibraryCovers, searchGoogleBooksCovers, searchArchiveOrgCovers, searchWikipediaCovers];
+    const total = sourceFns.length;
+    let done = 0, combined = [];
+
+    await Promise.all(sourceFns.map(fn => fn(query, controller.signal)
+      .then(results => {
+        if (controller.signal.aborted) return;
+        done++;
+        if (results && results.length) combined = combined.concat(results);
+        renderCoverResults(combined, done, total, controller);
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        done++;
+        renderCoverResults(combined, done, total, controller);
+      })
+    ));
+  }
+
+  function renderCoverResults(results, done, total, controller){
+    if (controller.signal.aborted) return;
+    const seen = new Set(), unique = [];
+    for (const r of results){ if (!seen.has(r.url)){ seen.add(r.url); unique.push(r); } }
+
+    coverSearchBody.innerHTML = '';
+    if (!unique.length && done >= total){
+      coverSearchBody.innerHTML = '<div class="cover-search-state">Ничего не найдено. Попробуйте изменить запрос или указать автора.</div>';
+      return;
+    }
+    const grid = document.createElement('div');
+    grid.className = 'cover-results-grid';
+    unique.forEach(r => grid.appendChild(buildCoverResultTile(r)));
+    coverSearchBody.appendChild(grid);
+    if (done < total){
+      const more = document.createElement('div');
+      more.className = 'cover-search-state cover-search-state-inline';
+      more.innerHTML = '<span class="mini-spinner"></span>Ищем ещё…';
+      coverSearchBody.appendChild(more);
+    }
+  }
+
+  function buildCoverResultTile(r){
+    const tile = document.createElement('div');
+    tile.className = 'cover-result';
+
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.referrerPolicy = 'no-referrer';
+    img.alt = r.title || 'Обложка';
+
+    const qualityBadge = document.createElement('span');
+    qualityBadge.className = 'cover-quality-badge';
+    qualityBadge.textContent = '…';
+
+    const sourceBadge = document.createElement('span');
+    sourceBadge.className = 'cover-source-badge';
+    sourceBadge.textContent = r.source;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'cover-tile-overlay';
+
+    img.addEventListener('load', () => {
+      const w = img.naturalWidth, h = img.naturalHeight;
+      if (!w || !h){ tile.remove(); return; }
+      const minDim = Math.min(w, h);
+      let tier = 'q-low', label = 'низкое';
+      if (minDim >= 900){ tier = 'q-high'; label = 'высокое'; }
+      else if (minDim >= 500){ tier = 'q-mid'; label = 'среднее'; }
+      qualityBadge.textContent = w + '×' + h;
+      qualityBadge.classList.add(tier);
+      qualityBadge.title = 'Качество: ' + label;
+    });
+    img.addEventListener('error', () => tile.remove());
+    img.src = r.url;
+
+    tile.appendChild(img);
+    tile.appendChild(qualityBadge);
+    tile.appendChild(sourceBadge);
+    tile.appendChild(overlay);
+    tile.addEventListener('click', () => selectCoverFromWeb(r, tile, overlay));
+    return tile;
+  }
+
+  async function selectCoverFromWeb(candidate, tile, overlay){
+    if (tile.classList.contains('selecting')) return;
+    tile.classList.add('selecting');
+    overlay.innerHTML = '<span class="mini-spinner mini-spinner-lg"></span>';
+    try {
+      const { base64, mime } = await imageUrlToBase64(candidate.url);
+      const id = (cover && cover.id) || ('cover.' + extFromMime(mime));
+      cover = { base64, mime, id };
+      coverRemoved = false;
+      renderCoverPreview();
+      closeCoverSearch();
+      showStatus('Обложка добавлена');
+    } catch (err){
+      overlay.innerHTML = '<span class="cover-tile-error-text">Не удалось загрузить.<br>Попробуйте другую</span>';
+      setTimeout(() => { tile.classList.remove('selecting'); overlay.innerHTML = ''; }, 3000);
+    }
+  }
+
+  function blobToBase64(blob){
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result.split(',')[1]);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
+  }
+  // primary path: fetch the actual bytes (works whenever the host sends CORS headers,
+  // true for Open Library, Internet Archive and most Google-hosted book thumbnails)
+  async function imageUrlToBase64(url){
+    try {
+      const res = await fetch(url, { mode: 'cors', referrerPolicy: 'no-referrer' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      if (!blob.type || !blob.type.startsWith('image/')) throw new Error('not an image');
+      return { base64: await blobToBase64(blob), mime: blob.type || 'image/jpeg' };
+    } catch (e){
+      return imageUrlToBase64ViaCanvas(url);
+    }
+  }
+  // fallback path: draw via canvas (only succeeds if the host allows CORS pixel reads)
+  function imageUrlToBase64ViaCanvas(url){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.referrerPolicy = 'no-referrer';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+          resolve({ base64: dataUrl.split(',')[1], mime: 'image/jpeg' });
+        } catch (e){ reject(e); }
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
 
   // ---------------- fill form from XML ----------------
   function fillFormFromXML(doc){
