@@ -1288,7 +1288,7 @@
   // failures are isolated per-source so one broken library never blocks the others.
   async function searchOpenLibraryCovers(query, signal){
     const res = await fetch('https://openlibrary.org/search.json?q=' + encodeURIComponent(query) +
-      '&fields=title,cover_i,edition_key&limit=14', { signal });
+      '&fields=title,cover_i,edition_key&limit=16', { signal });
     if (!res.ok) throw new Error('Open Library HTTP ' + res.status);
     const data = await res.json();
     const out = [], seen = new Set();
@@ -1303,20 +1303,27 @@
         }
       }
     }
-    return out.slice(0, 18);
+    return out.slice(0, 20);
   }
+  // Google's public (keyless) quota is easy to hit with quick repeat searches — a single
+  // short retry after a 429 is usually enough, since the quota window is very short.
   async function searchGoogleBooksCovers(query, signal){
-    const res = await fetch('https://www.googleapis.com/books/v1/volumes?q=' + encodeURIComponent(query) + '&maxResults=24', { signal });
+    const url = 'https://www.googleapis.com/books/v1/volumes?q=' + encodeURIComponent(query) + '&maxResults=20';
+    let res = await fetch(url, { signal });
+    if (res.status === 429){
+      await new Promise(r => setTimeout(r, 1200));
+      res = await fetch(url, { signal });
+    }
     if (!res.ok) throw new Error('Google Books HTTP ' + res.status);
     const data = await res.json();
     const out = [];
     for (const item of (data.items || [])){
       const links = item.volumeInfo && item.volumeInfo.imageLinks;
       if (!links) continue;
-      let url = links.extraLarge || links.large || links.medium || links.thumbnail || links.smallThumbnail;
-      if (!url) continue;
-      url = url.replace(/^http:/, 'https:').replace(/&edge=curl/, '').replace('zoom=1', 'zoom=0');
-      out.push({ url, source: 'Google Books', title: item.volumeInfo.title });
+      let url2 = links.extraLarge || links.large || links.medium || links.thumbnail || links.smallThumbnail;
+      if (!url2) continue;
+      url2 = url2.replace(/^http:/, 'https:').replace(/&edge=curl/, '').replace('zoom=1', 'zoom=0');
+      out.push({ url: url2, source: 'Google Books', title: item.volumeInfo.title });
     }
     return out;
   }
@@ -1342,19 +1349,41 @@
     }
     return out;
   }
+  async function searchITunesCovers(query, signal){
+    const res = await fetch('https://itunes.apple.com/search?term=' + encodeURIComponent(query) + '&media=ebook&limit=16', { signal });
+    if (!res.ok) throw new Error('Apple Books HTTP ' + res.status);
+    const data = await res.json();
+    const out = [];
+    for (const item of (data.results || [])){
+      let url = item.artworkUrl100 || item.artworkUrl60;
+      if (!url) continue;
+      // Apple serves any resolution on request — swap the small default size for a large one
+      url = url.replace(/\/\d+x\d+bb\.(jpg|png)$/i, '/1200x1200bb.$1');
+      out.push({ url, source: 'Apple Books', title: item.trackName });
+    }
+    return out;
+  }
 
+  let coverSearchLastQuery = null;
+  let coverSearchLastAt = 0;
   async function runCoverSearch(query){
     query = (query || '').trim();
     if (!query){
       coverSearchBody.innerHTML = '<div class="cover-search-state">Введите название книги и нажмите «Искать».</div>';
       return;
     }
+    // guard against the same search firing twice in a row (e.g. auto-search on open + an
+    // immediate manual click), which needlessly burns through external APIs' rate limits
+    if (query === coverSearchLastQuery && (Date.now() - coverSearchLastAt) < 1500) return;
+    coverSearchLastQuery = query;
+    coverSearchLastAt = Date.now();
+
     if (coverSearchController) coverSearchController.abort();
     const controller = new AbortController();
     coverSearchController = controller;
     coverSearchBody.innerHTML = '<div class="cover-search-state"><span class="mini-spinner"></span>Ищем обложки по нескольким библиотекам…</div>';
 
-    const sourceFns = [searchOpenLibraryCovers, searchGoogleBooksCovers, searchArchiveOrgCovers, searchWikipediaCovers];
+    const sourceFns = [searchOpenLibraryCovers, searchGoogleBooksCovers, searchArchiveOrgCovers, searchWikipediaCovers, searchITunesCovers];
     const total = sourceFns.length;
     let done = 0, combined = [];
 
@@ -1417,7 +1446,9 @@
 
     img.addEventListener('load', () => {
       const w = img.naturalWidth, h = img.naturalHeight;
-      if (!w || !h){ tile.remove(); return; }
+      // some libraries (notably Open Library) return a tiny 1x1 stub instead of a 404
+      // when a specific edition has no cover on file — treat those as "no result", not "low quality"
+      if (!w || !h || Math.min(w, h) < 40){ tile.remove(); return; }
       const minDim = Math.min(w, h);
       let tier = 'q-low', label = 'низкое';
       if (minDim >= 900){ tier = 'q-high'; label = 'высокое'; }
