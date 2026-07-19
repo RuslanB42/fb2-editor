@@ -250,6 +250,13 @@
   .convert-row a:nth-child(2){animation-delay:.5s;}
   .convert-tile:hover{transform:translateY(-3px);border-color:var(--accent);}
   .convert-tile:active{transform:translateY(0) scale(.98);}
+  @media (min-width:761px){
+    /* desktop: only widen the containers, keep every element's own size (padding, tile
+       height, fonts) exactly as before so nothing grows taller — just less side margin */
+    .welcome-stack{max-width:min(680px, 88vw);}
+    .welcome-card{max-width:min(680px, 88vw);}
+    .convert-tile{aspect-ratio:auto;height:212px;}
+  }
   .convert-tile-icon{
     width:42px;height:42px;flex:none;border-radius:50%;
     background:linear-gradient(150deg, var(--accent), var(--accent-2));
