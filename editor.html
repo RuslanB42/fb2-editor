@@ -626,6 +626,11 @@
     from{ clip-path:circle(0px at var(--circle-x,50%) var(--circle-y,50%)); }
     to{ clip-path:circle(var(--circle-end-radius,150vmax) at var(--circle-x,50%) var(--circle-y,50%)); }
   }
+  /* ---------- lighten paint cost while the reveal snapshot is captured/animated (mobile perf) ----------
+     the browser has to rasterize the whole page twice (before/after); dropping the heaviest
+     effects for that ~550ms avoids the stutter this causes on weaker mobile GPUs */
+  html.vt-lite{ --glass-blur:0px; }
+  html.vt-lite .welcome-card::before{ opacity:0; }
 
   /* ---------- small round icon buttons (close / remove cover) ---------- */
   .icon-round-btn{
@@ -945,7 +950,13 @@
     root.style.setProperty('--circle-y', y + 'px');
     root.style.setProperty('--circle-end-radius', endRadius + 'px');
 
-    document.startViewTransition(() => applyTheme(toDark));
+    // drop the heaviest blur effects for the duration of the reveal so the browser doesn't
+    // have to rasterize them twice (old + new state) — this is what causes mobile stutter
+    root.classList.add('vt-lite');
+    void root.offsetHeight; // commit the style before the old-state snapshot is captured
+
+    const transition = document.startViewTransition(() => applyTheme(toDark));
+    transition.finished.finally(() => root.classList.remove('vt-lite'));
   });
 
   // ---------------- helpers ----------------

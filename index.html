@@ -660,6 +660,9 @@
     from{ clip-path:circle(0px at var(--circle-x,50%) var(--circle-y,50%)); }
     to{ clip-path:circle(var(--circle-end-radius,150vmax) at var(--circle-x,50%) var(--circle-y,50%)); }
   }
+  /* ---------- lighten paint cost while the reveal snapshot is captured/animated (mobile perf) ---------- */
+  html.vt-lite{ --glass-blur:0px; }
+  html.vt-lite .welcome-card::before{ opacity:0; }
 
   /* ---------- small round icon buttons (close / remove cover) ---------- */
   .icon-round-btn{
