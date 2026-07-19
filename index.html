@@ -664,6 +664,27 @@
   html.vt-lite{ --glass-blur:0px; }
   html.vt-lite .welcome-card::before{ opacity:0; }
 
+  /* ---------- phones/touch: circular clip-path reveal isn't reliably GPU-composited on many
+     mobile engines (esp. WebKit), so swap it for a plain opacity/scale crossfade there instead —
+     that's compositor-only everywhere and stays perfectly smooth regardless of device power ---------- */
+  @media (max-width:760px), (pointer:coarse){
+    ::view-transition-new(root){
+      animation:theme-fade-in 380ms ease-out;
+      clip-path:none;
+    }
+    ::view-transition-old(root){
+      animation:theme-fade-out 380ms ease-in;
+    }
+    @keyframes theme-fade-in{
+      from{ opacity:0; transform:scale(.985); }
+      to{ opacity:1; transform:scale(1); }
+    }
+    @keyframes theme-fade-out{
+      from{ opacity:1; transform:scale(1); }
+      to{ opacity:0; transform:scale(1.01); }
+    }
+  }
+
   /* ---------- small round icon buttons (close / remove cover) ---------- */
   .icon-round-btn{
     width:34px;height:34px;flex:none;border-radius:50%;border:1px solid var(--line-strong);
