@@ -161,6 +161,13 @@
   }
   .brand .tag{display:none;}
 
+  .mode-switch{
+    display:flex;align-items:center;gap:8px;margin:-8px 4px 22px;font-size:13px;
+    color:var(--ink-faint);text-decoration:none;width:fit-content;transition:color .15s ease;
+  }
+  .mode-switch svg{width:15px;height:15px;flex:none;}
+  .mode-switch:hover{color:var(--accent);}
+
   /* ---------- glass surface base ---------- */
   .welcome-card, .intake, .spread-outer, .modal-box{
     background:var(--glass-bg);
@@ -602,6 +609,14 @@
   ::view-transition-new(root){
     animation:none;mix-blend-mode:normal;
   }
+  ::view-transition-new(root){
+    animation:theme-circle-reveal 550ms ease-in-out;
+    clip-path:circle(var(--circle-end-radius,150vmax) at var(--circle-x,50%) var(--circle-y,50%));
+  }
+  @keyframes theme-circle-reveal{
+    from{ clip-path:circle(0px at var(--circle-x,50%) var(--circle-y,50%)); }
+    to{ clip-path:circle(var(--circle-end-radius,150vmax) at var(--circle-x,50%) var(--circle-y,50%)); }
+  }
 
   /* ---------- small round icon buttons (close / remove cover) ---------- */
   .icon-round-btn{
@@ -626,18 +641,23 @@
 
   <div class="brand" style="margin-top:2px;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 7.1c-1.9-1.6-4.6-2.1-7.7-2.1-.44 0-.8.36-.8.8v12.1c0 .47.4.83.86.8 3 -.02 5.5.53 7.24 2.1 1.74-1.57 4.24-2.12 7.24-2.1.46.03.86-.33.86-.8V5.8c0-.44-.36-.8-.8-.8-3.1 0-5.8.5-7.7 2.1Z"/><path d="M12 7.1v13.6"/></svg>
-    <h1>Конвертер FB2 → EPUB</h1>
+    <h1 id="pageH1">Конвертер FB2 → EPUB</h1>
     <button class="theme-toggle" id="themeToggle" type="button" title="Переключить тему" aria-label="Переключить тему">
       <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8 6 18M18 6l1.8-1.8"/></svg>
       <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg>
     </button>
   </div>
 
+  <a class="mode-switch" id="modeSwitchLink" href="#">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 3v4a2 2 0 0 1-2 2H4"/><path d="m7 6-3 3 3 3"/><path d="M7 21v-4a2 2 0 0 1 2-2h11"/><path d="m17 18 3-3-3-3"/></svg>
+    <span id="modeSwitchText">Нужен обратный конвертер — EPUB в FB2?</span>
+  </a>
+
   <div class="intake" id="intake">
     <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Загрузить файл fb2 для конвертации в epub">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h13l-3-3"/><path d="M20 17H7l3 3"/></svg>
-      <div class="dz-title">Перетащите .fb2 файл сюда</div>
-      <div class="dz-sub">или нажмите, чтобы выбрать .fb2 / .fb2.zip с устройства — EPUB скачается автоматически</div>
+      <svg id="dzIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h13l-3-3"/><path d="M20 17H7l3 3"/></svg>
+      <div class="dz-title" id="dzTitle">Перетащите .fb2 файл сюда</div>
+      <div class="dz-sub" id="dzSub">или нажмите, чтобы выбрать .fb2 / .fb2.zip с устройства — EPUB скачается автоматически</div>
       <input type="file" id="fileInput" accept=".fb2,.zip">
       <div class="file-name" id="fileName"></div>
     </div>
@@ -669,11 +689,38 @@
   // ---------------- elements ----------------
   const intake = document.getElementById('intake');
   const dropZone = document.getElementById('dropZone');
+  const dzIcon = document.getElementById('dzIcon');
+  const dzTitle = document.getElementById('dzTitle');
+  const dzSub = document.getElementById('dzSub');
   const fileInput = document.getElementById('fileInput');
   const fileName = document.getElementById('fileName');
   const status = document.getElementById('status');
   const statusText = document.getElementById('statusText');
   const themeToggle = document.getElementById('themeToggle');
+  const pageH1 = document.getElementById('pageH1');
+  const modeSwitchLink = document.getElementById('modeSwitchLink');
+  const modeSwitchText = document.getElementById('modeSwitchText');
+
+  // ---------------- conversion direction ----------------
+  const mode = new URLSearchParams(location.search).get('mode') === 'epub2fb2' ? 'epub2fb2' : 'fb2epub';
+
+  function applyModeUI(){
+    if (mode === 'epub2fb2'){
+      document.title = 'Конвертер EPUB → FB2';
+      pageH1.textContent = 'Конвертер EPUB → FB2';
+      dzIcon.style.transform = 'scaleX(-1)';
+      dzTitle.textContent = 'Перетащите .epub файл сюда';
+      dzSub.textContent = 'или нажмите, чтобы выбрать .epub с устройства — FB2 скачается автоматически';
+      dropZone.setAttribute('aria-label', 'Загрузить файл epub для конвертации в fb2');
+      fileInput.setAttribute('accept', '.epub');
+      modeSwitchText.textContent = 'Нужен обратный конвертер — FB2 в EPUB?';
+      modeSwitchLink.href = 'converter.html';
+    } else {
+      modeSwitchText.textContent = 'Нужен обратный конвертер — EPUB в FB2?';
+      modeSwitchLink.href = 'converter.html?mode=epub2fb2';
+    }
+  }
+  applyModeUI();
 
   // ---------------- theme toggle (shared with the editor via localStorage) ----------------
   function applyTheme(toDark){
@@ -689,13 +736,13 @@
     const x = e.clientX || (themeToggle.getBoundingClientRect().left + themeToggle.offsetWidth/2);
     const y = e.clientY || (themeToggle.getBoundingClientRect().top + themeToggle.offsetHeight/2);
     const endRadius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-    const transition = document.startViewTransition(() => applyTheme(toDark));
-    transition.ready.then(() => {
-      document.documentElement.animate(
-        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`] },
-        { duration: 550, easing: 'ease-in-out', pseudoElement: '::view-transition-new(root)' }
-      );
-    });
+
+    const root = document.documentElement;
+    root.style.setProperty('--circle-x', x + 'px');
+    root.style.setProperty('--circle-y', y + 'px');
+    root.style.setProperty('--circle-end-radius', endRadius + 'px');
+
+    document.startViewTransition(() => applyTheme(toDark));
   });
 
   // ---------------- status helpers ----------------
@@ -835,6 +882,229 @@
     return { title, authorFull, genre, annotation, cover, chapters, lang };
   }
 
+  // ---------------- epub parsing helpers (mirrors the main editor) ----------------
+  function metaText(opfDoc, localName){
+    let el = opfDoc.getElementsByTagName('dc:' + localName)[0];
+    if (!el){
+      const all = opfDoc.getElementsByTagNameNS('http://purl.org/dc/elements/1.1/', localName);
+      el = all[0];
+    }
+    return el ? el.textContent.replace(/\s+/g,' ').trim() : '';
+  }
+  function splitAuthorName(full){
+    full = (full || '').trim();
+    if (!full) return { first:'', last:'' };
+    const parts = full.split(/\s+/);
+    if (parts.length === 1) return { first:'', last: parts[0] };
+    const last = parts.pop();
+    return { first: parts.join(' '), last };
+  }
+  function findCoverManifestItem(opfDoc, manifestItems){
+    let item = manifestItems.find(it => (it.properties||'').split(/\s+/).includes('cover-image'));
+    if (item) return item;
+    const metas = Array.from(opfDoc.getElementsByTagName('meta'));
+    const coverMeta = metas.find(m => m.getAttribute('name') === 'cover');
+    if (coverMeta){
+      const id = coverMeta.getAttribute('content');
+      item = manifestItems.find(it => it.id === id);
+      if (item) return item;
+    }
+    item = manifestItems.find(it => /image/.test(it.mediaType) && /cover/i.test((it.id||'') + (it.href||'')));
+    return item || null;
+  }
+  function joinEpubPath(dir, href){
+    if (!href) return href;
+    href = href.split('#')[0];
+    if (/^https?:\/\//i.test(href)) return href;
+    const combined = dir + href;
+    const stack = [];
+    for (const part of combined.split('/')){
+      if (part === '..') stack.pop();
+      else if (part === '.' || part === '') continue;
+      else stack.push(part);
+    }
+    return stack.join('/');
+  }
+  // manifest/spine hrefs are URIs and are often percent-encoded (spaces, cyrillic filenames, etc.)
+  // while the zip entry itself is stored under the raw filename — try several variants.
+  function findZipFile(zip, rawPath){
+    if (!rawPath) return null;
+    const tryPaths = new Set([rawPath]);
+    try { tryPaths.add(decodeURIComponent(rawPath)); } catch(e){}
+    try { tryPaths.add(encodeURI(rawPath)); } catch(e){}
+    for (const p of Array.from(tryPaths)){
+      if (p.startsWith('/')) tryPaths.add(p.slice(1));
+    }
+    for (const p of tryPaths){
+      const f = zip.file(p);
+      if (f) return { file: f, path: p };
+    }
+    const norm = (s) => { try { return decodeURIComponent(s); } catch(e){ return s; } };
+    const target = norm(rawPath).toLowerCase().replace(/^\//,'');
+    const foundKey = Object.keys(zip.files).find(k => norm(k).toLowerCase().replace(/^\//,'') === target);
+    return foundKey ? { file: zip.file(foundKey), path: foundKey } : null;
+  }
+  function normalizeHrefKey(href){
+    if (!href) return '';
+    let h = href.split('#')[0];
+    try { h = decodeURIComponent(h); } catch(e){}
+    return h.replace(/^\.?\//,'').toLowerCase();
+  }
+  // EPUB chapter files are XHTML — parse as real XML first (handles self-closing tags like
+  // <title/> correctly); fall back to a sanitized HTML-mode parse for malformed markup.
+  function parseXHTML(html){
+    const xmlDoc = new DOMParser().parseFromString(html, 'application/xhtml+xml');
+    if (xmlDoc && !xmlDoc.querySelector('parsererror') && (xmlDoc.body || xmlDoc.querySelector('body'))){
+      return xmlDoc;
+    }
+    const sanitized = html.replace(/<(title|script|style|textarea)((?:\s+[^>]*)?)\/>/gi, '<$1$2></$1>');
+    return new DOMParser().parseFromString(sanitized, 'text/html');
+  }
+  const EPUB_BLOCK_TAGS = new Set([
+    'div','section','article','header','footer','aside','main','figure','figcaption',
+    'p','li','blockquote','td','th','dd','dt','pre','details','summary'
+  ]);
+  async function xhtmlToLines(zip, path){
+    const lookup = findZipFile(zip, path);
+    if (!lookup) return { lines: [], hasHeading: false };
+    const html = await lookup.file.async('text');
+    const doc = parseXHTML(html);
+    const body = doc.body || doc.querySelector('body');
+    const lines = [];
+    if (!body) return { lines, hasHeading: false };
+    let buf = '';
+    const flush = () => {
+      const t = buf.replace(/\s+/g,' ').trim();
+      if (t) lines.push(t);
+      buf = '';
+    };
+    (function walk(node){
+      for (const child of Array.from(node.childNodes)){
+        if (child.nodeType === Node.TEXT_NODE){
+          buf += child.textContent;
+          continue;
+        }
+        if (child.nodeType !== Node.ELEMENT_NODE) continue;
+        const tag = child.tagName.toLowerCase();
+        if (tag === 'script' || tag === 'style') continue;
+        if (tag === 'br'){ flush(); continue; }
+        if (/^h[1-6]$/.test(tag)){
+          flush();
+          const t = child.textContent.replace(/\s+/g,' ').trim();
+          if (t) lines.push('#'.repeat(parseInt(tag[1],10)) + ' ' + t);
+          continue;
+        }
+        if (EPUB_BLOCK_TAGS.has(tag)){
+          flush();
+          walk(child);
+          flush();
+          continue;
+        }
+        walk(child);
+      }
+    })(body);
+    flush();
+    return { lines, hasHeading: lines.some(l => /^#{1,6}\s/.test(l)) };
+  }
+  // many EPUBs mark chapter boundaries only by splitting into separate spine files, without any
+  // semantic heading tag inside — pull chapter titles from the epub3 nav document or epub2 NCX.
+  async function extractNavTitles(zip, opfDir, manifestItems){
+    const map = new Map();
+    const addEntry = (href, titleText) => {
+      const key = normalizeHrefKey(href);
+      const title = (titleText || '').replace(/\s+/g,' ').trim();
+      if (key && title && !map.has(key)) map.set(key, title);
+    };
+    const navItem = manifestItems.find(it => (it.properties||'').split(/\s+/).includes('nav'));
+    if (navItem){
+      const lookup = findZipFile(zip, joinEpubPath(opfDir, navItem.href));
+      if (lookup){
+        const html = await lookup.file.async('text');
+        const doc = parseXHTML(html);
+        Array.from(doc.querySelectorAll('a[href]')).forEach(a => addEntry(a.getAttribute('href'), a.textContent));
+      }
+    }
+    const ncxItem = manifestItems.find(it => /ncx/i.test(it.mediaType) || /\.ncx$/i.test(it.href||''));
+    if (ncxItem){
+      const lookup = findZipFile(zip, joinEpubPath(opfDir, ncxItem.href));
+      if (lookup){
+        const xml = await lookup.file.async('text');
+        const doc = new DOMParser().parseFromString(xml, 'text/xml');
+        Array.from(doc.getElementsByTagName('navPoint')).forEach(np => {
+          const contentEl = np.getElementsByTagName('content')[0];
+          const textEl = np.getElementsByTagName('text')[0];
+          if (contentEl) addEntry(contentEl.getAttribute('src'), textEl ? textEl.textContent : '');
+        });
+      }
+    }
+    return map;
+  }
+  async function readEPUBFromZip(zip){
+    const containerLookup = findZipFile(zip, 'META-INF/container.xml');
+    if (!containerLookup) throw new Error('Не найден META-INF/container.xml — это не похоже на epub');
+    const containerXml = await containerLookup.file.async('text');
+    const containerDoc = new DOMParser().parseFromString(containerXml, 'text/xml');
+    const rootfileEl = containerDoc.querySelector('rootfile');
+    const opfPathRaw = rootfileEl && rootfileEl.getAttribute('full-path');
+    const opfLookup = findZipFile(zip, opfPathRaw);
+    if (!opfLookup) throw new Error('Не найден OPF-файл в epub');
+    const opfPath = opfLookup.path;
+    const opfDir = opfPath.includes('/') ? opfPath.slice(0, opfPath.lastIndexOf('/')+1) : '';
+    const opfXml = await opfLookup.file.async('text');
+    const opfDoc = new DOMParser().parseFromString(opfXml, 'text/xml');
+    if (opfDoc.querySelector('parsererror')) throw new Error('OPF-файл повреждён или не является корректным XML');
+
+    const title = metaText(opfDoc, 'title');
+    const creator = metaText(opfDoc, 'creator');
+    const description = metaText(opfDoc, 'description');
+    const subject = metaText(opfDoc, 'subject');
+    const language = metaText(opfDoc, 'language') || 'ru';
+
+    const manifestItems = Array.from(opfDoc.getElementsByTagName('item')).map(it => ({
+      id: it.getAttribute('id'),
+      href: it.getAttribute('href'),
+      mediaType: it.getAttribute('media-type') || '',
+      properties: it.getAttribute('properties') || ''
+    }));
+    const spineItemrefs = Array.from(opfDoc.getElementsByTagName('itemref')).map(ir => ir.getAttribute('idref'));
+    const coverItem = findCoverManifestItem(opfDoc, manifestItems);
+    let spineItems = spineItemrefs.map(idref => manifestItems.find(it => it.id === idref)).filter(Boolean);
+    spineItems = spineItems.filter(it => !/\bnav\b/.test(it.properties) && (!coverItem || it.id !== coverItem.id));
+
+    let cover = null;
+    if (coverItem){
+      const lookup = findZipFile(zip, joinEpubPath(opfDir, coverItem.href));
+      if (lookup){
+        const base64 = await lookup.file.async('base64');
+        const mime = coverItem.mediaType || 'image/jpeg';
+        cover = { base64, mime, id: 'cover.' + extFromMime(mime) };
+      }
+    }
+
+    const navTitles = await extractNavTitles(zip, opfDir, manifestItems);
+
+    let allLines = [];
+    let chapterCount = 0;
+    for (const item of spineItems){
+      const path = joinEpubPath(opfDir, item.href);
+      const { lines, hasHeading } = await xhtmlToLines(zip, path);
+      if (!lines.length) continue;
+      chapterCount++;
+      let bodyLines = lines;
+      if (!hasHeading){
+        const navTitle = navTitles.get(normalizeHrefKey(item.href));
+        const heading = navTitle || ('Глава ' + chapterCount);
+        if (bodyLines.length && bodyLines[0].toLowerCase() === heading.toLowerCase()){
+          bodyLines = bodyLines.slice(1);
+        }
+        allLines.push('# ' + heading);
+      }
+      allLines = allLines.concat(bodyLines);
+    }
+
+    return { title, creator, description, subject, language, cover, text: allLines.join('\n') };
+  }
+
   // ---------------- build & download epub ----------------
   async function buildAndDownloadEpub(originalFileName, meta){
     const escapeXml = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -954,6 +1224,113 @@ ${navLisXml}
     URL.revokeObjectURL(link.href);
   }
 
+  // ---------------- lines ("#"-marked headings) -> nested FB2 <section> tree ----------------
+  // mirrors the editor's textToBodyChildren() nesting algorithm, but emits an XML string
+  function linesToFB2Tree(text){
+    const root = { children: [] };
+    const stack = [{ level:0, node: root }];
+    let active = null;
+    const lines = (text || '').split('\n');
+    for (const raw of lines){
+      const m = raw.match(/^(#{1,6})\s+(.+)$/);
+      if (m){
+        const level = m[1].length;
+        const titleText = m[2].trim();
+        while (stack.length > 1 && stack[stack.length-1].level >= level) stack.pop();
+        const parent = stack[stack.length-1].node;
+        const sec = { title: titleText, children: [] };
+        parent.children.push(sec);
+        stack.push({ level, node: sec });
+        active = sec;
+      } else if (raw.trim() === ''){
+        continue;
+      } else {
+        if (!active){
+          const sec = { title: null, children: [] };
+          root.children.push(sec);
+          stack.push({ level:1, node: sec });
+          active = sec;
+        }
+        active.children.push({ p: raw.trim() });
+      }
+    }
+    return root;
+  }
+  function renderFB2Node(node, indent, escapeXml){
+    const pad = '  '.repeat(indent);
+    let xml = pad + '<section>\n';
+    if (node.title) xml += pad + `  <title><p>${escapeXml(node.title)}</p></title>\n`;
+    for (const child of node.children){
+      if ('p' in child) xml += pad + `  <p>${escapeXml(child.p)}</p>\n`;
+      else xml += renderFB2Node(child, indent+1, escapeXml);
+    }
+    xml += pad + '</section>\n';
+    return xml;
+  }
+  function buildFB2BodyXml(text, escapeXml){
+    const tree = linesToFB2Tree(text);
+    if (!tree.children.length) return '    <section>\n      <p></p>\n    </section>\n';
+    return tree.children.map(n => renderFB2Node(n, 2, escapeXml)).join('');
+  }
+
+  // ---------------- build & download fb2 ----------------
+  async function buildAndDownloadFB2(originalFileName, meta){
+    const escapeXml = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+    const title = meta.title || 'Без названия';
+    const { first: authorFirst, last: authorLast } = splitAuthorName(meta.authorFull);
+    const genreText = meta.genre || 'other';
+    const annotationText = meta.annotation || '';
+    const lang = meta.lang || 'ru';
+    const cover = meta.cover;
+    const bookId = generateUUID();
+
+    let coverInfoXml = '';
+    let binaryXml = '';
+    if (cover){
+      coverInfoXml = `\n      <coverpage><image l:href="#${cover.id}"/></coverpage>`;
+      binaryXml = `\n  <binary id="${cover.id}" content-type="${escapeXml(cover.mime)}">${cover.base64}</binary>`;
+    }
+
+    const bodyXml = buildFB2BodyXml(meta.text, escapeXml);
+
+    const fb2 = `<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
+  <description>
+    <title-info>
+      <genre>${escapeXml(genreText)}</genre>
+      <author>
+        <first-name>${escapeXml(authorFirst)}</first-name>
+        <last-name>${escapeXml(authorLast || 'Неизвестный автор')}</last-name>
+      </author>
+      <book-title>${escapeXml(title)}</book-title>
+      <annotation><p>${escapeXml(annotationText)}</p></annotation>${coverInfoXml}
+      <lang>${escapeXml(lang)}</lang>
+    </title-info>
+    <document-info>
+      <program-used>Книжный редактор — конвертер EPUB в FB2</program-used>
+      <date value="${new Date().toISOString().slice(0,10)}"/>
+      <id>${bookId}</id>
+      <version>1.0</version>
+    </document-info>
+  </description>
+  <body>
+${bodyXml}  </body>${binaryXml}
+</FictionBook>
+`;
+
+    const blob = new Blob([fb2], { type:'application/xml' });
+    const filename = (originalFileName.replace(/\.epub$/i,'') || 'book') + '.fb2';
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  }
+
   // ---------------- main convert flow ----------------
   async function handleFile(file){
     fileName.textContent = file.name;
@@ -964,24 +1341,44 @@ ${navLisXml}
       const header = new Uint8Array(buffer.slice(0, 4));
       const looksLikeZip = (header[0]===0x50 && header[1]===0x4B && header[2]===0x03 && header[3]===0x04);
 
-      let doc;
-      if (looksLikeZip){
+      if (mode === 'epub2fb2'){
+        if (!looksLikeZip) throw new Error('Это не похоже на EPUB — сюда нужно загрузить файл .epub');
         const zip = await JSZip.loadAsync(buffer);
-        if (zip.file('META-INF/container.xml')){
-          throw new Error('Это файл EPUB — сюда нужно загрузить FB2 (.fb2 или .fb2.zip)');
+        if (!zip.file('META-INF/container.xml')){
+          throw new Error('Это файл FB2 — сюда нужно загрузить EPUB (.epub)');
         }
-        const result = await readFB2ZipContent(zip);
-        doc = result.doc;
+        const parsed = await readEPUBFromZip(zip);
+        const meta = {
+          title: parsed.title,
+          authorFull: parsed.creator,
+          genre: parsed.subject,
+          annotation: parsed.description,
+          cover: parsed.cover,
+          text: parsed.text,
+          lang: parsed.language
+        };
+        await buildAndDownloadFB2(file.name, meta);
+        showStatus('Готово — FB2 скачан');
       } else {
-        if (/\.epub$/i.test(file.name)) throw new Error('Это файл EPUB — сюда нужно загрузить FB2 (.fb2 или .fb2.zip)');
-        const text = new TextDecoder('utf-8').decode(buffer);
-        doc = new DOMParser().parseFromString(text, 'text/xml');
-        if (doc.querySelector('parsererror')) throw new Error('Файл повреждён или не является корректным fb2/xml');
-      }
+        let doc;
+        if (looksLikeZip){
+          const zip = await JSZip.loadAsync(buffer);
+          if (zip.file('META-INF/container.xml')){
+            throw new Error('Это файл EPUB — сюда нужно загрузить FB2 (.fb2 или .fb2.zip)');
+          }
+          const result = await readFB2ZipContent(zip);
+          doc = result.doc;
+        } else {
+          if (/\.epub$/i.test(file.name)) throw new Error('Это файл EPUB — сюда нужно загрузить FB2 (.fb2 или .fb2.zip)');
+          const text = new TextDecoder('utf-8').decode(buffer);
+          doc = new DOMParser().parseFromString(text, 'text/xml');
+          if (doc.querySelector('parsererror')) throw new Error('Файл повреждён или не является корректным fb2/xml');
+        }
 
-      const meta = extractMeta(doc);
-      await buildAndDownloadEpub(file.name, meta);
-      showStatus('Готово — EPUB скачан');
+        const meta = extractMeta(doc);
+        await buildAndDownloadEpub(file.name, meta);
+        showStatus('Готово — EPUB скачан');
+      }
     } catch (e){
       showStatus('Не удалось сконвертировать: ' + e.message, true);
     } finally {

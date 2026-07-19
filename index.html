@@ -231,6 +231,40 @@
   .btn-lg svg{transition:transform .18s ease;}
   .btn-lg:hover svg{transform:translateX(3px);}
 
+  /* ---------- welcome stack (welcome card + converter tiles) ---------- */
+  .welcome-stack{display:flex;flex-direction:column;align-items:center;gap:18px;width:100%;max-width:440px;}
+  .convert-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;}
+  .convert-tile{
+    position:relative;aspect-ratio:1/1;border-radius:22px;padding:18px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    text-align:center;text-decoration:none;color:var(--ink);
+    background:var(--glass-bg);
+    -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+    border:1px solid var(--glass-border);
+    box-shadow:var(--glass-shadow), var(--glass-inset);
+    opacity:0;transform:translateY(10px);animation:rise .55s ease forwards;
+    transition:transform .18s ease, border-color .18s ease;
+  }
+  .convert-row a:nth-child(1){animation-delay:.42s;}
+  .convert-row a:nth-child(2){animation-delay:.5s;}
+  .convert-tile:hover{transform:translateY(-3px);border-color:var(--accent);}
+  .convert-tile:active{transform:translateY(0) scale(.98);}
+  .convert-tile-icon{
+    width:42px;height:42px;flex:none;border-radius:50%;
+    background:linear-gradient(150deg, var(--accent), var(--accent-2));
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 20px -8px rgba(10,132,255,.55), inset 0 1px 1px rgba(255,255,255,.5);
+  }
+  .convert-tile-icon svg{width:18px;height:18px;}
+  .convert-tile-label{font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:var(--ink);}
+  .convert-tile-sub{font-size:12px;color:var(--ink-faint);}
+  @media (max-width:420px){
+    .convert-tile{padding:12px;border-radius:18px;}
+    .convert-tile-icon{width:36px;height:36px;}
+    .convert-tile-label{font-size:13.5px;}
+  }
+
   /* ---------- footer ---------- */
   .site-footer{display:flex;flex-direction:column;align-items:center;gap:10px;}
   .site-footer.app-footer{margin:34px 4px 0;}
@@ -618,6 +652,14 @@
   ::view-transition-new(root){
     animation:none;mix-blend-mode:normal;
   }
+  ::view-transition-new(root){
+    animation:theme-circle-reveal 550ms ease-in-out;
+    clip-path:circle(var(--circle-end-radius,150vmax) at var(--circle-x,50%) var(--circle-y,50%));
+  }
+  @keyframes theme-circle-reveal{
+    from{ clip-path:circle(0px at var(--circle-x,50%) var(--circle-y,50%)); }
+    to{ clip-path:circle(var(--circle-end-radius,150vmax) at var(--circle-x,50%) var(--circle-y,50%)); }
+  }
 
   /* ---------- small round icon buttons (close / remove cover) ---------- */
   .icon-round-btn{
@@ -635,20 +677,35 @@
 <body>
 
 <div class="wrap welcome-screen">
-  <div class="welcome-card">
-    <div class="welcome-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 7.1c-1.9-1.6-4.6-2.1-7.7-2.1-.44 0-.8.36-.8.8v12.1c0 .47.4.83.86.8 3 -.02 5.5.53 7.24 2.1 1.74-1.57 4.24-2.12 7.24-2.1.46.03.86-.33.86-.8V5.8c0-.44-.36-.8-.8-.8-3.1 0-5.8.5-7.7 2.1Z"/><path d="M12 7.1v13.6"/></svg>
+  <div class="welcome-stack">
+    <div class="welcome-card">
+      <div class="welcome-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 7.1c-1.9-1.6-4.6-2.1-7.7-2.1-.44 0-.8.36-.8.8v12.1c0 .47.4.83.86.8 3 -.02 5.5.53 7.24 2.1 1.74-1.57 4.24-2.12 7.24-2.1.46.03.86-.33.86-.8V5.8c0-.44-.36-.8-.8-.8-3.1 0-5.8.5-7.7 2.1Z"/><path d="M12 7.1v13.6"/></svg>
+      </div>
+      <h1 class="welcome-title">Книжный редактор</h1>
+      <p class="welcome-sub">Обложка, метаданные и текст FB2 и EPUB — в одном окне, без установки программ.</p>
+      <a class="btn btn-primary btn-lg" href="editor.html" style="text-decoration:none;">
+        Открыть редактор
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+      </a>
     </div>
-    <h1 class="welcome-title">Книжный редактор</h1>
-    <p class="welcome-sub">Обложка, метаданные и текст FB2 и EPUB — в одном окне, без установки программ.</p>
-    <a class="btn btn-primary btn-lg" href="editor.html" style="text-decoration:none;">
-      Открыть редактор
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
-    </a>
-    <a class="btn btn-ghost btn-lg" href="converter.html" style="text-decoration:none;margin:12px auto 0;display:flex;width:fit-content;">
-      Конвертировать FB2 в EPUB
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h13l-3-3"/><path d="M20 17H7l3 3"/></svg>
-    </a>
+
+    <div class="convert-row">
+      <a class="convert-tile" href="converter.html">
+        <span class="convert-tile-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h13l-3-3"/><path d="M20 17H7l3 3"/></svg>
+        </span>
+        <span class="convert-tile-label">FB2 → EPUB</span>
+        <span class="convert-tile-sub">Конвертировать</span>
+      </a>
+      <a class="convert-tile" href="converter.html?mode=epub2fb2">
+        <span class="convert-tile-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="transform:scaleX(-1);"><path d="M4 7h13l-3-3"/><path d="M20 17H7l3 3"/></svg>
+        </span>
+        <span class="convert-tile-label">EPUB → FB2</span>
+        <span class="convert-tile-sub">Конвертировать</span>
+      </a>
+    </div>
   </div>
 
   <footer class="site-footer">
