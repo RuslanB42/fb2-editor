@@ -609,36 +609,21 @@
     animation:none;mix-blend-mode:normal;
   }
   ::view-transition-new(root){
-    animation:theme-circle-reveal 550ms ease-in-out;
-    clip-path:circle(var(--circle-end-radius,150vmax) at var(--circle-x,50%) var(--circle-y,50%));
+    animation:theme-fade-in 380ms ease-out;
   }
-  @keyframes theme-circle-reveal{
-    from{ clip-path:circle(0px at var(--circle-x,50%) var(--circle-y,50%)); }
-    to{ clip-path:circle(var(--circle-end-radius,150vmax) at var(--circle-x,50%) var(--circle-y,50%)); }
+  ::view-transition-old(root){
+    animation:theme-fade-out 380ms ease-in;
   }
-  /* ---------- lighten paint cost while the reveal snapshot is captured/animated (mobile perf) ---------- */
+  @keyframes theme-fade-in{
+    from{ opacity:0; transform:scale(.985); }
+    to{ opacity:1; transform:scale(1); }
+  }
+  @keyframes theme-fade-out{
+    from{ opacity:1; transform:scale(1); }
+    to{ opacity:0; transform:scale(1.01); }
+  }
+  /* ---------- lighten paint cost while the reveal snapshot is captured/animated (perf) ---------- */
   html.vt-lite{ --glass-blur:0px; }
-
-  /* ---------- phones/touch: circular clip-path reveal isn't reliably GPU-composited on many
-     mobile engines (esp. WebKit), so swap it for a plain opacity/scale crossfade there instead —
-     that's compositor-only everywhere and stays perfectly smooth regardless of device power ---------- */
-  @media (max-width:760px), (pointer:coarse){
-    ::view-transition-new(root){
-      animation:theme-fade-in 380ms ease-out;
-      clip-path:none;
-    }
-    ::view-transition-old(root){
-      animation:theme-fade-out 380ms ease-in;
-    }
-    @keyframes theme-fade-in{
-      from{ opacity:0; transform:scale(.985); }
-      to{ opacity:1; transform:scale(1); }
-    }
-    @keyframes theme-fade-out{
-      from{ opacity:1; transform:scale(1); }
-      to{ opacity:0; transform:scale(1.01); }
-    }
-  }
 
   /* ---------- small round icon buttons (close / remove cover) ---------- */
   .icon-round-btn{
