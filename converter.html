@@ -605,6 +605,9 @@
   html.dark .theme-toggle .icon-moon{opacity:1;transform:scale(1) rotate(0deg);}
 
   /* ---------- circular reveal for theme switch (View Transitions API) ---------- */
+  ::view-transition-group(root){
+    animation-duration:0s; /* kill the browser's built-in resize/move interpolation so only our own animation runs — otherwise a scrollbar appearing/disappearing between the two snapshots makes the whole page visibly snap toward the top-left corner on some screens */
+  }
   ::view-transition-old(root),
   ::view-transition-new(root){
     animation:none;mix-blend-mode:normal;
@@ -757,8 +760,9 @@
       applyTheme(toDark);
       return;
     }
-    const x = e.clientX || (themeToggle.getBoundingClientRect().left + themeToggle.offsetWidth/2);
-    const y = e.clientY || (themeToggle.getBoundingClientRect().top + themeToggle.offsetHeight/2);
+    const hasPoint = e.clientX !== 0 || e.clientY !== 0;
+    const x = hasPoint ? e.clientX : (themeToggle.getBoundingClientRect().left + themeToggle.offsetWidth/2);
+    const y = hasPoint ? e.clientY : (themeToggle.getBoundingClientRect().top + themeToggle.offsetHeight/2);
     const endRadius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
 
     const root = document.documentElement;

@@ -655,6 +655,9 @@
   html.dark .theme-toggle .icon-moon{opacity:1;transform:scale(1) rotate(0deg);}
 
   /* ---------- circular reveal for theme switch (View Transitions API) ---------- */
+  ::view-transition-group(root){
+    animation-duration:0s; /* kill the browser's built-in resize/move interpolation so only our own animation runs — otherwise a scrollbar appearing/disappearing between the two snapshots makes the whole page visibly snap toward the top-left corner on some screens */
+  }
   ::view-transition-old(root),
   ::view-transition-new(root){
     animation:none;mix-blend-mode:normal;

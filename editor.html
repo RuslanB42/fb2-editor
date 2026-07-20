@@ -601,6 +601,9 @@
   html.dark .theme-toggle .icon-moon{opacity:1;transform:scale(1) rotate(0deg);}
 
   /* ---------- circular reveal for theme switch (View Transitions API) ---------- */
+  ::view-transition-group(root){
+    animation-duration:0s; /* kill the browser's built-in resize/move interpolation so only our own animation runs — otherwise a scrollbar appearing/disappearing between the two snapshots makes the whole page visibly snap toward the top-left corner on some screens */
+  }
   ::view-transition-old(root),
   ::view-transition-new(root){
     animation:none;mix-blend-mode:normal;
@@ -612,6 +615,29 @@
   @keyframes theme-circle-reveal{
     from{ clip-path:circle(0px at var(--circle-x,50%) var(--circle-y,50%)); }
     to{ clip-path:circle(var(--circle-end-radius,150vmax) at var(--circle-x,50%) var(--circle-y,50%)); }
+  }
+  /* ---------- lighten paint cost while the reveal snapshot is captured/animated (mobile perf) ---------- */
+  html.vt-lite{ --glass-blur:0px; }
+
+  /* ---------- phones/touch: circular clip-path reveal isn't reliably GPU-composited on many
+     mobile engines (esp. WebKit), so swap it for a plain opacity/scale crossfade there instead —
+     that's compositor-only everywhere and stays perfectly smooth regardless of device power ---------- */
+  @media (max-width:760px), (pointer:coarse){
+    ::view-transition-new(root){
+      animation:theme-fade-in 380ms ease-out;
+      clip-path:none;
+    }
+    ::view-transition-old(root){
+      animation:theme-fade-out 380ms ease-in;
+    }
+    @keyframes theme-fade-in{
+      from{ opacity:0; transform:scale(.985); }
+      to{ opacity:1; transform:scale(1); }
+    }
+    @keyframes theme-fade-out{
+      from{ opacity:1; transform:scale(1); }
+      to{ opacity:0; transform:scale(1.01); }
+    }
   }
 
   /* ---------- small round icon buttons (close / remove cover) ---------- */
@@ -910,8 +936,9 @@
       return;
     }
 
-    const x = e.clientX || (themeToggle.getBoundingClientRect().left + themeToggle.offsetWidth/2);
-    const y = e.clientY || (themeToggle.getBoundingClientRect().top + themeToggle.offsetHeight/2);
+    const hasPoint = e.clientX !== 0 || e.clientY !== 0;
+    const x = hasPoint ? e.clientX : (themeToggle.getBoundingClientRect().left + themeToggle.offsetWidth/2);
+    const y = hasPoint ? e.clientY : (themeToggle.getBoundingClientRect().top + themeToggle.offsetHeight/2);
     const endRadius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
 
     const root = document.documentElement;
@@ -919,7 +946,11 @@
     root.style.setProperty('--circle-y', y + 'px');
     root.style.setProperty('--circle-end-radius', endRadius + 'px');
 
-    document.startViewTransition(() => applyTheme(toDark));
+    root.classList.add('vt-lite');
+    void root.offsetHeight;
+
+    const transition = document.startViewTransition(() => applyTheme(toDark));
+    transition.finished.finally(() => root.classList.remove('vt-lite'));
   });
 
   // ---------------- helpers ----------------
