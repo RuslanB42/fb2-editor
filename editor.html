@@ -499,11 +499,6 @@
   }
   html.dark .chapter-title-bar input{background:rgba(255,255,255,.05);}
   .chapter-title-bar input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-ring);}
-  .level-select{
-    width:76px;padding:9px 8px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-size:13px;
-    background:rgba(255,255,255,.35);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;
-  }
-  html.dark .level-select{background:rgba(255,255,255,.05);}
   .icon-btn-danger{
     width:38px;height:38px;flex:none;border-radius:var(--r-sm);border:1px solid var(--line-strong);
     background:rgba(255,255,255,.20);color:var(--ink-faint);cursor:pointer;display:flex;align-items:center;justify-content:center;
@@ -576,7 +571,6 @@
 
     .chapter-title-bar{flex-wrap:wrap;}
     .chapter-title-bar input{flex:1 1 100%;}
-    .level-select{flex:1;width:auto;}
     .icon-btn-danger{width:44px;height:44px;}
 
     .chapter-nav-btns .nav-icon-btn, .icon-round-btn{width:36px;height:36px;}
@@ -625,32 +619,6 @@
   @keyframes theme-circle-reveal{
     from{ clip-path:circle(0px at var(--circle-x,50%) var(--circle-y,50%)); }
     to{ clip-path:circle(var(--circle-end-radius,150vmax) at var(--circle-x,50%) var(--circle-y,50%)); }
-  }
-  /* ---------- lighten paint cost while the reveal snapshot is captured/animated (mobile perf) ----------
-     the browser has to rasterize the whole page twice (before/after); dropping the heaviest
-     effects for that ~550ms avoids the stutter this causes on weaker mobile GPUs */
-  html.vt-lite{ --glass-blur:0px; }
-  html.vt-lite .welcome-card::before{ opacity:0; }
-
-  /* ---------- phones/touch: circular clip-path reveal isn't reliably GPU-composited on many
-     mobile engines (esp. WebKit), so swap it for a plain opacity/scale crossfade there instead —
-     that's compositor-only everywhere and stays perfectly smooth regardless of device power ---------- */
-  @media (max-width:760px), (pointer:coarse){
-    ::view-transition-new(root){
-      animation:theme-fade-in 380ms ease-out;
-      clip-path:none;
-    }
-    ::view-transition-old(root){
-      animation:theme-fade-out 380ms ease-in;
-    }
-    @keyframes theme-fade-in{
-      from{ opacity:0; transform:scale(.985); }
-      to{ opacity:1; transform:scale(1); }
-    }
-    @keyframes theme-fade-out{
-      from{ opacity:1; transform:scale(1); }
-      to{ opacity:0; transform:scale(1.01); }
-    }
   }
 
   /* ---------- small round icon buttons (close / remove cover) ---------- */
@@ -798,14 +766,6 @@
 
           <div class="chapter-title-bar" id="chapterTitleBar">
             <input type="text" id="chapterTitleInput" placeholder="Заголовок главы">
-            <select class="level-select" id="chapterLevelSelect" title="Уровень вложенности">
-              <option value="1">Ур. 1</option>
-              <option value="2">Ур. 2</option>
-              <option value="3">Ур. 3</option>
-              <option value="4">Ур. 4</option>
-              <option value="5">Ур. 5</option>
-              <option value="6">Ур. 6</option>
-            </select>
             <button class="icon-btn-danger" id="deleteChapterBtn" type="button" title="Удалить главу" aria-label="Удалить главу">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>
             </button>
@@ -922,7 +882,6 @@
   const prefaceNote = document.getElementById('prefaceNote');
   const chapterTitleBar = document.getElementById('chapterTitleBar');
   const chapterTitleInput = document.getElementById('chapterTitleInput');
-  const chapterLevelSelect = document.getElementById('chapterLevelSelect');
   const deleteChapterBtn = document.getElementById('deleteChapterBtn');
   const chapterBodyText = document.getElementById('chapterBodyText');
 
@@ -971,13 +930,7 @@
     root.style.setProperty('--circle-y', y + 'px');
     root.style.setProperty('--circle-end-radius', endRadius + 'px');
 
-    // drop the heaviest blur effects for the duration of the reveal so the browser doesn't
-    // have to rasterize them twice (old + new state) — this is what causes mobile stutter
-    root.classList.add('vt-lite');
-    void root.offsetHeight; // commit the style before the old-state snapshot is captured
-
-    const transition = document.startViewTransition(() => applyTheme(toDark));
-    transition.finished.finally(() => root.classList.remove('vt-lite'));
+    document.startViewTransition(() => applyTheme(toDark));
   });
 
   // ---------------- helpers ----------------
@@ -1442,7 +1395,6 @@
       prefaceNote.style.display = 'none';
       chapterTitleBar.style.display = 'flex';
       chapterTitleInput.value = ch.title || '';
-      chapterLevelSelect.value = String(ch.level);
     }
     chapterBodyText.value = ch.paragraphs.join('\n');
 
@@ -1455,10 +1407,6 @@
     chapters[activeChapter].title = chapterTitleInput.value;
     const activeChip = tocRow.querySelector('.chip.active');
     if (activeChip) activeChip.textContent = chapterTitleInput.value.trim() || 'Без названия';
-  });
-  chapterLevelSelect.addEventListener('change', () => {
-    chapters[activeChapter].level = parseInt(chapterLevelSelect.value, 10);
-    renderTOC();
   });
   chapterBodyText.addEventListener('input', () => {
     chapters[activeChapter].paragraphs = chapterBodyText.value.split('\n');
