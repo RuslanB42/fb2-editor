@@ -194,7 +194,7 @@ button:disabled{cursor:default}
 .split-arrow{width:clamp(34px,2.8vw,45px);border-radius:0 999px 999px 0;border-left:1.5px solid var(--bg)!important;display:grid;place-items:center}
 .split-arrow svg{width:13px;height:13px;transition:transform .2s}
 .split-arrow[aria-expanded="true"] svg{transform:rotate(180deg)}
-.coffee{height:clamp(34px,2.8vw,44px);padding:0 clamp(16px,3.5vw,67px);border:2px solid var(--outline);border-radius:999px;background:transparent;font-size:clamp(13px,1vw,15px);font-weight:500;transition:background-color .2s,color .2s}
+.coffee{height:clamp(34px,2.8vw,44px);padding:0 clamp(16px,2.4vw,40px);border:2px solid var(--outline);border-radius:999px;background:transparent;font-size:clamp(13px,1vw,15px);font-weight:500;transition:background-color .2s,color .2s}
 .theme{--tw:clamp(68px,5.6vw,88px);--th:clamp(34px,2.8vw,44px);margin-left:auto;flex:none;position:relative;width:var(--tw);height:var(--th);border-radius:999px;border:0;background:var(--btn);padding:0;box-shadow:0 8px 16px -8px rgba(0,0,0,.5)}
 .knob{position:absolute;top:3px;bottom:3px;aspect-ratio:1;border-radius:50%;background:var(--knob);color:var(--knob-ink);display:grid;place-items:center;right:3px;transition:transform .3s cubic-bezier(.5,0,.2,1),background-color .3s}
 .knob svg{width:52%;height:52%}
@@ -587,6 +587,9 @@ body.fs-open .page{visibility:hidden}
   .fs-nav{width:44px;padding:0;justify-content:center}
   .cc-open{width:100%;height:48px}
 }
+.coffee{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;color:inherit;text-decoration:none}
+.coffee-short{display:none}
+@media (max-width:420px){ .coffee-long{display:none} .coffee-short{display:inline} }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
@@ -645,7 +648,7 @@ body.fs-open .page{visibility:hidden}
         <button type="button" role="menuitemradio" aria-checked="true"><span>Редактор метаданных</span><svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3 3 7-7"/></svg></button>
       </div>
     </div>
-    <button class="coffee" id="coffee" type="button">На кофе</button>
+    <a class="coffee" id="coffee" href="https://pay.cloudtips.ru/p/341cbc6a" target="_blank" rel="noopener" aria-label="Поддержать проект (откроется в новой вкладке)"><span class="coffee-long" aria-hidden="true">Поддержать проект</span><span class="coffee-short" aria-hidden="true">Поддержать</span></a>
     <button class="theme" id="theme" type="button" role="switch" aria-checked="false" aria-label="Тёмная тема">
       <span class="knob">
         <svg class="sun" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="5"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1.5v2.2M12 20.3v2.2M1.5 12h2.2M20.3 12h2.2M4.6 4.6l1.5 1.5M17.9 17.9l1.5 1.5M4.6 19.4l1.5-1.5M17.9 6.1l1.5-1.5"/></g></svg>
@@ -1723,7 +1726,7 @@ $('#theme').addEventListener('click', () => {
   try { localStorage.setItem('conv-theme', next); } catch(e){}
   syncTheme();
 });
-$('#coffee').addEventListener('click', () => toast('Спасибо! Возможность угостить нас кофе появится совсем скоро.'));
+$('#coffee').addEventListener('click', () => track('donate_click'));
 
 /* =====================================================================
    Editor state
