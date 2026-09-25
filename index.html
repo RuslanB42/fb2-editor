@@ -6,6 +6,7 @@
 <meta name="format-detection" content="telephone=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Редактор книг">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://mc.yandex.ru https://mc.yandex.com https://*.yandex.ru https://*.yandex.com https://*.yandex.net https://yastatic.net https://mc.webvisor.org https://mc.webvisor.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://mc.yandex.ru https://mc.yandex.com https://*.yandex.ru https://*.yandex.com https://*.yandex.net https://yastatic.net https://mc.webvisor.org https://mc.webvisor.com; connect-src 'self' blob: data: https://mc.yandex.ru https://mc.yandex.com https://*.yandex.ru https://*.yandex.com https://*.yandex.net https://yastatic.net https://mc.webvisor.org https://mc.webvisor.com wss://*.yandex.ru wss://*.yandex.com; frame-src blob: https://mc.yandex.ru https://mc.yandex.com https://*.yandex.ru https://*.yandex.com https://*.yandex.net https://yastatic.net https://mc.webvisor.org https://mc.webvisor.com; child-src blob: https://mc.yandex.ru https://mc.yandex.com https://*.yandex.ru https://*.yandex.com https://*.yandex.net https://yastatic.net https://mc.webvisor.org https://mc.webvisor.com; worker-src 'self' blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests">
 <title>Редактор FB2 и EPUB онлайн — обложка, автор, жанры и текст книги</title>
 <meta name="description" content="Бесплатный онлайн-редактор книг FB2 и EPUB: смените обложку, название, автора, серию, жанры и аннотацию, исправьте оглавление и текст. Без регистрации и загрузки на сервер.">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
@@ -132,8 +133,7 @@
 }
 </script>
 <script>window.YM_ID=110732944;(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,"script","https://mc.yandex.ru/metrika/tag.js","ym");ym(110732944,"init",{clickmap:true,trackLinks:true,accurateTrackBounce:true,webvisor:true});</script><noscript><div><img src="https://mc.yandex.ru/watch/110732944" style="position:absolute;left:-9999px" alt=""></div></noscript>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Cormorant+Garamond:wght@500&display=swap" rel="stylesheet">
@@ -544,6 +544,7 @@ body.fs-open .page{visibility:hidden}
 .fs-text a{color:inherit}
 .fs-text h1,.fs-text h2,.fs-text h3,.fs-text h4{font-family:var(--serif);font-weight:600;line-height:1.2;margin:1.2em 0 .6em}
 .fs-text .fs-dup{display:none}
+.fs-text .fs-raw{display:none}
 .fs-text hr{border:0;height:1px;width:30%;margin:1.6em 0;background:color-mix(in srgb,var(--ink) 22%,transparent)}
 .fs-text blockquote{margin:1em 0 1em 1.5em;font-style:italic}
 .fs-text .fb-title{font-family:var(--serif);font-weight:600;font-size:1.25em;text-align:center;margin:1.2em 0 .7em}
@@ -642,7 +643,6 @@ body.fs-open .page{visibility:hidden}
         <div class="menu-title" aria-hidden="true">Инструменты</div>
         <a role="menuitem" href="/fb2-v-epub/"><span>Конвертер книг</span><span class="hint">FB2, EPUB, MOBI, PDF…</span></a>
         <button type="button" role="menuitemradio" aria-checked="true"><span>Редактор метаданных</span><svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3 3 7-7"/></svg></button>
-        <button type="button" role="menuitem" disabled><span>Объединение книг</span><span class="hint">скоро</span></button>
       </div>
     </div>
     <button class="coffee" id="coffee" type="button">На кофе</button>
@@ -674,9 +674,42 @@ body.fs-open .page{visibility:hidden}
 </div>
 <div class="backdrop" id="backdrop" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="cookie" id="cookie" role="region" aria-label="Уведомление о cookie" hidden>
+  <p>Мы используем cookie, чтобы сайт работал лучше. Это безопасно: ваши книги никуда не загружаются.</p>
+  <button type="button" id="cookieOk">Понятно</button>
+</div>
+<style>
+.cookie{position:fixed;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:55;display:flex;align-items:center;gap:16px;max-width:460px;padding:14px 14px 14px 20px;border-radius:22px;background:var(--btn);color:var(--btn-ink);border:1px solid color-mix(in srgb,var(--btn-ink) 16%,transparent);box-shadow:0 18px 40px -16px rgba(0,0,0,.55);animation:cookieIn .35s cubic-bezier(.2,.8,.2,1)}
+.cookie[hidden]{display:none}
+.cookie p{margin:0;font-size:13px;line-height:1.45;opacity:.88}
+.cookie button{flex:none;height:38px;padding:0 18px;border:0;border-radius:999px;background:var(--btn-ink);color:var(--btn);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+.cookie button:focus-visible{outline:2px solid var(--btn-ink);outline-offset:3px}
+@media (hover:hover){ .cookie button:hover{opacity:.88} }
+@keyframes cookieIn{from{opacity:0;transform:translateY(16px)}}
+body.cookie-open .toast{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
+@media (max-width:640px){
+  .cookie{left:12px;right:12px;max-width:none;flex-direction:column;align-items:stretch;gap:12px;padding:16px;border-radius:20px}
+  .cookie p{font-size:13.5px}
+  .cookie button{height:44px;font-size:15px}
+  body.cookie-open .toast{bottom:calc(170px + env(safe-area-inset-bottom,0px))}
+}
+@media (prefers-reduced-motion:reduce){ .cookie{animation:none} }
+</style>
+<script>
+(function(){
+  var box = document.getElementById('cookie'), seen = false;
+  try { seen = localStorage.getItem('cookie-ok') === '1'; } catch(e){}
+  if(seen) return;
+  setTimeout(function(){ box.hidden = false; document.body.classList.add('cookie-open'); }, 1200);
+  document.getElementById('cookieOk').addEventListener('click', function(){
+    try { localStorage.setItem('cookie-ok','1'); } catch(e){}
+    box.hidden = true; document.body.classList.remove('cookie-open');
+  });
+})();
+</script>
 <script>
 "use strict";
-const CDN = { jszip: ['https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'] };
+const CDN = { jszip: ['/vendor/jszip.min.js'] };
 const XLINK = 'http://www.w3.org/1999/xlink';
 
 
@@ -1489,23 +1522,51 @@ async function buildEpubUnits(book){
   if(enc){ const d = parseXml(await enc.async('string')); if(d) book.encrypted = byLocal(d,'CipherReference').some(r => !/\.(otf|ttf|woff2?)$/i.test(r.getAttribute('URI')||'')); }
 }
 
+/* Book chapters are untrusted HTML. Before anything reaches the live page, the parsed
+   (inert) XHTML is defused: active elements become hidden placeholders and every attribute
+   that could run code or load something from the network is parked in data-safe-attrs.
+   Both are restored verbatim when the chapter is saved, so the book itself is unchanged. */
+const EPUB_ACTIVE = new Set(['script','noscript','iframe','frame','frameset','object','embed','applet','form','input','button','select','textarea','option','link','meta','base','style','audio','video','source','track','picture','portal','dialog','template','slot','animate','set','animatemotion','animatetransform','foreignobject','use','handler','listener']);
+const EPUB_RISKY_ATTR = /^(on|id$|name$|style$|href$|src$|srcset$|srcdoc$|action$|formaction$|poster$|background$|lowsrc$|dynsrc$|data$|ping$|xmlns:|values$|to$|from$|by$|attributename$)/i;
+function defuseXml(root){
+  const doc = root.ownerDocument, ser = new XMLSerializer();
+  for(const el of [...root.getElementsByTagName('*')]){
+    if(!root.contains(el)) continue;
+    if(EPUB_ACTIVE.has(el.localName.toLowerCase())){
+      const ph = doc.createElementNS(NS_XHTML, 'span');
+      ph.setAttribute('class','fs-raw'); ph.setAttribute('data-raw', ser.serializeToString(el));
+      el.parentNode.replaceChild(ph, el);
+      continue;
+    }
+    const parked = [];
+    for(const at of [...el.attributes]){
+      if(EPUB_RISKY_ATTR.test(at.localName) && !(at.name==='xmlns' || at.prefix==='xmlns')){
+        parked.push([at.namespaceURI, at.name, at.value]);
+        el.removeAttributeNode(at);
+      }
+    }
+    if(parked.length) el.setAttribute('data-safe-attrs', JSON.stringify(parked));
+  }
+}
 async function renderEpubUnit(book, u){
   const s = await book.get(u.path).async('string');
   const doc = parseXml(s);
   const body = doc && byLocal(doc,'body')[0];
   if(!body) throw fail('Эта глава свёрстана с ошибками, поэтому безопасно изменить её здесь нельзя.');
+  defuseXml(body);                 // runs on the inert XML document, before import
   const box = document.createElement('div');
   for(const c of body.childNodes) box.appendChild(document.importNode(c, true));
-  for(const s of box.querySelectorAll('script')) s.remove();
-  for(const e of box.querySelectorAll('*')) e.setAttribute('data-o','');
-  for(const img of box.querySelectorAll('img')){
-    const src = img.getAttribute('src'); if(!src) continue;
-    img.setAttribute('data-src-orig', src); const url = await book.imageUrl(u.path, src); if(url) img.setAttribute('src', url);
-    img.contentEditable = 'false';
+  for(const e of box.querySelectorAll('*')){
+    e.setAttribute('data-o','');
+    if(e.getAttributeNS && [...e.attributes].some(a => /^on/i.test(a.localName))) throw fail('Не удалось безопасно открыть эту главу.');
   }
-  for(const im of box.querySelectorAll('image')){
-    const a = [...im.attributes].find(a => a.localName==='href'); if(!a) continue;
-    im.setAttribute('data-href-orig', a.value); const url = await book.imageUrl(u.path, a.value); if(url) im.setAttributeNS(a.namespaceURI, a.name, url);
+  for(const ph of box.querySelectorAll('.fs-raw')) ph.contentEditable = 'false';
+  // show the book's own pictures (from inside the file only, never from the internet)
+  for(const e of box.querySelectorAll('img, image')){
+    const parked = JSON.parse(e.getAttribute('data-safe-attrs') || '[]');
+    const src = (parked.find(p => /(^|:)(src|href)$/.test(p[1])) || [])[2];
+    if(src && !/^[a-z][a-z0-9+.-]*:/i.test(src)){ const url = await book.imageUrl(u.path, src); if(url) e.setAttribute(e.localName==='img' ? 'src' : 'href', url); }
+    e.contentEditable = 'false';
   }
   for(const svgEl of box.querySelectorAll('svg')) svgEl.setAttribute('contenteditable','false');
   const lang = doc.documentElement.getAttribute('lang') || doc.documentElement.getAttribute('xml:lang');
@@ -1515,13 +1576,16 @@ function cleanEpubHtml(box){
   const unwrap = e => { while(e.firstChild) e.parentNode.insertBefore(e.firstChild, e); e.remove(); };
   for(const e of [...box.querySelectorAll('*')]){
     if(!e.parentNode) continue;
+    if(e.classList && e.classList.contains('fs-raw')) continue;
     const orig = e.hasAttribute('data-o');
     if(!orig && /^(span|font)$/.test(e.localName)){ unwrap(e); continue; }
-    if(!orig) e.removeAttribute('style');
+    // anything the browser added while editing: keep the tag, drop every attribute but plain ones
+    for(const at of [...e.attributes]) if(/^on/i.test(at.localName) || (!orig && at.localName==='style')) e.removeAttributeNode(at);
     e.removeAttribute('data-o'); e.removeAttribute('contenteditable');
     if(e.classList && e.classList.contains('fs-dup')){ e.classList.remove('fs-dup'); if(!e.classList.length) e.removeAttribute('class'); }
-    if(e.hasAttribute('data-src-orig')){ e.setAttribute('src', e.getAttribute('data-src-orig')); e.removeAttribute('data-src-orig'); }
-    if(e.hasAttribute('data-href-orig')){ const a = [...e.attributes].find(a => a.localName==='href'); if(a) e.setAttributeNS(a.namespaceURI, a.name, e.getAttribute('data-href-orig')); e.removeAttribute('data-href-orig'); }
+    if(e.localName==='img' || e.localName==='image'){ e.removeAttribute('src'); for(const at of [...e.attributes]) if(at.localName==='href') e.removeAttributeNode(at); }
+    const parked = e.getAttribute('data-safe-attrs');
+    if(parked){ e.removeAttribute('data-safe-attrs'); for(const [ns, name, val] of JSON.parse(parked)){ try { e.setAttributeNS(ns || null, name, val); } catch(err){} } }
   }
   return box;
 }
@@ -1535,6 +1599,12 @@ async function epubTextFiles(book, textEdits, files){
     while(body.firstChild) body.removeChild(body.firstChild);
     body.appendChild(doc.createTextNode('\n'));
     for(const c of [...box.childNodes]) body.appendChild(doc.importNode(c, true));
+    // put the untouched active elements back exactly as they were
+    for(const ph of [...body.getElementsByTagName('span')].filter(x => (x.getAttribute('class')||'')==='fs-raw')){
+      const frag = new DOMParser().parseFromString(ph.getAttribute('data-raw'), 'application/xml');
+      if(frag.getElementsByTagName('parsererror').length){ ph.remove(); continue; }
+      ph.parentNode.replaceChild(doc.importNode(frag.documentElement, true), ph);
+    }
     body.appendChild(doc.createTextNode('\n'));
     files[u.path] = serializeXml(doc);
   }
